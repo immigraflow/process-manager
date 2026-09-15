@@ -10,7 +10,8 @@ export const STATUS_OPTIONS = [
 export const MARCO_DEFS = {
   pwd: { label: 'PWD', statusOptions: [{key:'analise',label:'1. Em análise'},{key:'rfi',label:'2. RFI'},{key:'emitido',label:'3. Emitido'}], doneKey: 'emitido' },
   eta9089: { label: 'ETA 9089', statusOptions: [{key:'analise',label:'1. Em análise'},{key:'certificado',label:'2. Certificado'}], doneKey: 'certificado' },
-  i140: { label: 'I-140', statusOptions: [{key:'pendente',label:'1. Pendente'},{key:'protocolado',label:'2. Protocolado'}], doneKey: 'protocolado' }
+  i140: { label: 'I-140', statusOptions: [{key:'pendente',label:'1. Pendente'},{key:'protocolado',label:'2. Protocolado'}], doneKey: 'protocolado' },
+  status: { label: 'STATUS', statusOptions: [{key:'pendente',label:'Pendente'},{key:'sim',label:'Sim'},{key:'nao',label:'Não'}], doneKey: 'sim', doneKeys: ['sim','nao'] }
 };
 
 export const KANBAN_COLUMNS = [
@@ -48,7 +49,8 @@ export const DEFAULT_TEMPLATE = [
   { titulo: 'Em assinatura da advogada (dura 7 dias; após isso, lembrete de pendência ou cobrança)' },
   { titulo: 'Liberar para a equipe de envio' },
   { titulo: 'Protocolar o I-140', tipo: 'marco', marcoTipo: 'i140' },
-  { titulo: 'Liberar tracking number ao empregador e encaminhar ao cliente support' }
+  { titulo: 'Liberar tracking number ao empregador e encaminhar ao cliente support' },
+  { titulo: 'O I-140 foi aprovado?', tipo: 'marco', marcoTipo: 'status' }
 ];
 
 export const AOS_TEMPLATE = [

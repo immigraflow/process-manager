@@ -1,4 +1,4 @@
-import { state, getCase, findI140Marco } from '../state.js';
+import { state, getCase, findStatusMarco } from '../state.js';
 import { MARCO_DEFS, STATUS_OPTIONS } from '../constants.js';
 import { isEtapaDone, caseFullyDone, caseOverallStatus, deadlineStatus, deadlineLabel } from '../domain.js';
 import { escapeHtml, fmtDate, todayISO } from '../utils.js';
@@ -133,8 +133,8 @@ export function renderCaseDetail(c){
 }
 
 export function renderNvcAosBlock(c, aosEtapasParam){
-  const i140 = findI140Marco(c);
-  if(!i140 || i140.status !== 'protocolado') return '';
+  const statusMarco = findStatusMarco(c);
+  if(!statusMarco || statusMarco.status !== 'sim') return '';
   const aosEtapas = aosEtapasParam || c.etapas.filter(e => e.colecao === 'aos');
   return `
     <div class="separator-line"><span>Pós I-140</span></div>
@@ -146,13 +146,22 @@ export function renderNvcAosBlock(c, aosEtapasParam){
       <div class="section-label">Etapas AOS (${aosEtapas.length})</div>
       <div class="timeline">${aosEtapas.map(e => renderEtapa(c, e)).join('')}</div>
     ` : ''}
+    ${c.nvcAosChoice==='nvc' ? `
+      <div style="display:flex; align-items:center; gap:12px; padding:16px 18px; border-radius:var(--radius); border:1px solid var(--done); background:var(--done-soft, #e6f7ec);">
+        <i class="pi pi-check-circle" style="font-size:22px; color:var(--done);"></i>
+        <div>
+          <div style="font-weight:700; font-family:var(--font-display); color:var(--done); letter-spacing:0.04em; font-size:13.5px;">ATUAÇÃO FINALIZADA</div>
+          <div style="font-size:13px; color:var(--ink-soft); margin-top:2px;">Caso segue via NVC — nenhuma etapa adicional necessária neste escritório.</div>
+        </div>
+      </div>
+    ` : ''}
   `;
 }
 
 export function renderEtapa(c, e){
   const isEditing = state.editingEtapaId === e.id;
   if(e.tipo === 'marco'){
-    if(isEditing) return `<div class="etapa marco marco-${e.marcoTipo}">${renderMarcoForm(c, e)}</div>`;
+    if(isEditing) return `<div class="etapa marco marco-${e.marcoTipo}${e.marcoTipo==='status' ? ' marco-status-'+e.status : ''}">${renderMarcoForm(c, e)}</div>`;
     return renderMarcoCard(c, e);
   }
   if(isEditing) return `<div class="etapa st-${e.status}">${renderEtapaForm(c, e)}</div>`;
@@ -201,9 +210,10 @@ function renderMarcoCard(c, e){
   } else if(e.marcoTipo === 'i140'){
     extra = `${m.dataProtocolo?`<span>Protocolo: ${fmtDate(m.dataProtocolo)}</span>`:''}${m.dataPrioridade?`<span>Data de prioridade: ${fmtDate(m.dataPrioridade)}</span>`:''}${m.prazoAlvo?`<span>Prazo-alvo: ${fmtDate(m.prazoAlvo)}</span>`:''}`;
   }
+  const statusModifier = e.marcoTipo === 'status' ? ` marco-card-status-${e.status}` : '';
   return `
-    <div class="etapa marco marco-${e.marcoTipo}">
-      <div class="etapa-card marco-card marco-card-${e.marcoTipo}">
+    <div class="etapa marco marco-${e.marcoTipo}${e.marcoTipo==='status' ? ' marco-status-'+e.status : ''}">
+      <div class="etapa-card marco-card marco-card-${e.marcoTipo}${statusModifier}">
         <div class="marco-label">Marco · ${def.label}</div>
         <div class="etapa-top">
           <div style="flex:1;">

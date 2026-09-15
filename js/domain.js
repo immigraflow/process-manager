@@ -10,7 +10,11 @@ export function newMarcoFields(tipo){
 }
 
 export function isEtapaDone(e){
-  if(e.tipo === 'marco') return e.status === MARCO_DEFS[e.marcoTipo].doneKey;
+  if(e.tipo === 'marco'){
+    const def = MARCO_DEFS[e.marcoTipo];
+    const doneKeys = def.doneKeys || [def.doneKey];
+    return doneKeys.includes(e.status);
+  }
   return e.status === 'concluido';
 }
 
@@ -36,7 +40,8 @@ export function deadlineLabel(etapa){
 export function urgencyOf(e){
   if(e.tipo === 'marco'){
     const def = MARCO_DEFS[e.marcoTipo];
-    if(e.status === def.doneKey) return 'done';
+    const doneKeys = def.doneKeys || [def.doneKey];
+    if(doneKeys.includes(e.status)) return 'done';
     const alvo = e.marco.prazoAlvo || (e.marcoTipo === 'pwd' && e.marco.houveRfi ? e.marco.rfiPrazo : null);
     if(!alvo) return 'neutro';
     const diff = daysUntil(alvo);
@@ -60,7 +65,8 @@ export function caseOverallStatus(c){
 export function computeCategory(e){
   if(e.tipo === 'marco'){
     const def = MARCO_DEFS[e.marcoTipo];
-    if(e.status === def.doneKey) return 'liberada';
+    const doneKeys = def.doneKeys || [def.doneKey];
+    if(doneKeys.includes(e.status)) return 'liberada';
     if(e.marcoTipo === 'pwd' && e.marco.houveRfi && e.status === 'rfi' && e.marco.rfiPrazo && daysUntil(e.marco.rfiPrazo) < 0) return 'urgente';
     if(e.marco.prazoAlvo && daysUntil(e.marco.prazoAlvo) < 0) return 'urgente';
     if(e.marcoTipo === 'pwd' && e.status === 'rfi') return 'revisao';
@@ -81,7 +87,8 @@ export function nearestDeadline(c){
   c.etapas.forEach(e => {
     if(e.tipo === 'marco'){
       const def = MARCO_DEFS[e.marcoTipo];
-      const done = e.status === def.doneKey;
+      const doneKeys = def.doneKeys || [def.doneKey];
+      const done = doneKeys.includes(e.status);
       if(!done){
         if(e.marcoTipo === 'pwd' && e.marco.houveRfi && e.marco.rfiPrazo) candidates.push({ date: e.marco.rfiPrazo, label: `Responder RFI · ${def.label}` });
         if(e.marco.prazoAlvo) candidates.push({ date: e.marco.prazoAlvo, label: `Prazo para concluir marco ${def.label}` });

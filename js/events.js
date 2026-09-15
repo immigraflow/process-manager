@@ -278,7 +278,8 @@ export function attachEvents(render){
         if(alvo){ const novoMarco = { ...alvo.marco, prazoAlvo: marco.validade }; await api.dbUpdateEtapa(alvo.id, { marco: novoMarco }); alvo.marco = novoMarco; }
       }
 
-      if(status === def.doneKey) await api.completeUpToDb(c, e.id);
+      const doneKeys = def.doneKeys || [def.doneKey];
+      if(doneKeys.includes(status)) await api.completeUpToDb(c, e.id);
       state.editingEtapaId = null;
       showToast('Marco atualizado com sucesso!');
     });

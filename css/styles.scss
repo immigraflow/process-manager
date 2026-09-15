@@ -201,6 +201,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   &.marco-pwd::before{ background: var(--marco-pwd); border-color: var(--marco-pwd); }
   &.marco-eta9089::before{ background: var(--marco-eta9089); border-color: var(--marco-eta9089); }
   &.marco-i140::before{ background: var(--marco-i140); border-color: var(--marco-i140); }
+  &.marco-status-pendente::before{ background: var(--warning); border-color: var(--warning); }
+  &.marco-status-sim::before{ background: var(--done); border-color: var(--done); }
+  &.marco-status-nao::before{ background: var(--urgent); border-color: var(--urgent); }
 }
 
 .status-select{
@@ -233,6 +236,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   &-pwd{ border-color: var(--marco-pwd); background: var(--marco-pwd-soft); }
   &-eta9089{ border-color: var(--marco-eta9089); background: var(--marco-eta9089-soft); }
   &-i140{ border-color: var(--marco-i140); background: var(--marco-i140-soft); }
+  &-status-pendente{ border-color: var(--warning); background: var(--warning-soft); }
+  &-status-sim{ border-color: var(--done); background: var(--done-soft); }
+  &-status-nao{ border-color: var(--urgent); background: var(--urgent-soft); }
 }
 .marco-label{
   font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -241,6 +247,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 .marco-card-pwd .marco-label{ background: var(--marco-pwd); }
 .marco-card-eta9089 .marco-label{ background: var(--marco-eta9089); }
 .marco-card-i140 .marco-label{ background: var(--marco-i140); }
+.marco-card-status-pendente .marco-label{ background: var(--warning); }
+.marco-card-status-sim .marco-label{ background: var(--done); }
+.marco-card-status-nao .marco-label{ background: var(--urgent); }
 
 // ============================================================
 // FORMS
@@ -279,9 +288,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 .loading-msg{ text-align: center; color: var(--ink-faint); font-size: 13px; padding: 60px 0; }
 
 .separator-line{
-  display: flex; align-items: center; gap: 10px; margin: 24px 0 14px; color: var(--ink-faint);
-  font-family: var(--font-mono); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
-  &::before, &::after{ content: ''; flex: 1; border-top: 1px dashed var(--line); }
+  display: flex; align-items: center; gap: 10px; margin: 32px 0 18px; color: var(--ink-soft);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
+  &::before, &::after{ content: ''; flex: 1; border-top: 2px solid var(--line); }
 }
 .choice-btn{
   padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: #fff;
@@ -487,3 +496,5 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 // STICKY: apenas as abas ficam fixas ao rolar (sidebar não é mais sticky)
 // ============================================================
 .tabs{ position: sticky; top: 0; background: var(--bg); z-index: 50; padding-top: 4px; }
+
+#view-root{ margin-bottom: 32px; }

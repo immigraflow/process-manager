@@ -36,3 +36,4 @@ export const state = {
 
 export function getCase(id){ return state.data.cases.find(c => c.id === id); }
 export function findI140Marco(c){ return c.etapas.find(e => e.tipo === 'marco' && e.marcoTipo === 'i140'); }
+export function findStatusMarco(c){ return c.etapas.find(e => e.tipo === 'marco' && e.marcoTipo === 'status'); }
