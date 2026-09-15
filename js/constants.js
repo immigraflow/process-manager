@@ -11,8 +11,44 @@ export const MARCO_DEFS = {
   pwd: { label: 'PWD', statusOptions: [{key:'analise',label:'1. Em análise'},{key:'rfi',label:'2. RFI'},{key:'emitido',label:'3. Emitido'}], doneKey: 'emitido' },
   eta9089: { label: 'ETA 9089', statusOptions: [{key:'analise',label:'1. Em análise'},{key:'certificado',label:'2. Certificado'}], doneKey: 'certificado' },
   i140: { label: 'I-140', statusOptions: [{key:'pendente',label:'1. Pendente'},{key:'protocolado',label:'2. Protocolado'}], doneKey: 'protocolado' },
-  status: { label: 'STATUS', statusOptions: [{key:'pendente',label:'Pendente'},{key:'sim',label:'Sim'},{key:'nao',label:'Não'}], doneKey: 'sim', doneKeys: ['sim','nao'] }
+  status: { label: 'STATUS', statusOptions: [{key:'pendente',label:'Pendente'},{key:'sim',label:'Sim'},{key:'nao',label:'Não'}], doneKey: 'sim', doneKeys: ['sim','nao'] },
+  recurso_decisao: {
+    label: 'Decisão',
+    statusOptions: [
+      { key:'analise', label:'1. Em análise' },
+      { key:'aprovado', label:'2. Aprovado' },
+      { key:'negado', label:'3. Negado' },
+      { key:'rfe', label:'4. RFE' },
+      { key:'rejeitado', label:'5. Rejeitado' }
+    ],
+    doneKey: 'aprovado',
+    doneKeys: ['aprovado','negado','rfe','rejeitado']
+  }
 };
+
+/** Tipos de recurso selecionáveis quando uma decisão vem negada/RFE/rejeitada */
+export const RECURSO_TIPOS = [
+  { key: 'rfe_resposta', label: 'Resposta da RFE' },
+  { key: 'npt', label: 'NPT' },
+  { key: 'motion', label: 'MOTION' },
+  { key: 'appeal', label: 'APPEAL' }
+];
+
+/** Status que, ao serem escolhidos numa decisão, liberam a seleção de um recurso */
+export const RECURSO_STATUS_GATILHO = ['negado', 'rfe', 'rejeitado'];
+
+/** L3: etapas geradas sempre que um recurso é selecionado (pode se repetir em looping) */
+export const RECURSO_STEPS = [
+  { titulo: 'Análise da Notice recebida', colecao: 'aos' },
+  { titulo: 'Estabelecer estratégia', colecao: 'aos' },
+  { titulo: 'Solicitar docs complementares', colecao: 'aos' },
+  { titulo: 'Solicitar preenchimento de forms', colecao: 'aos' },
+  { titulo: 'Montagem do Package', colecao: 'aos' },
+  { titulo: 'Enviar para assinatura da Advogada', colecao: 'aos' },
+  { titulo: 'Liberar para a equipe de envio', colecao: 'aos' },
+  { titulo: 'Enviar o Tracking ao cliente', colecao: 'aos' }
+];
+export const RECURSO_MARCO = { titulo: 'O recurso foi aceito?', tipo: 'marco', marcoTipo: 'recurso_decisao', colecao: 'aos' };
 
 export const KANBAN_COLUMNS = [
   { key: 'urgente', label: 'Urgente' },
@@ -59,7 +95,9 @@ export const AOS_TEMPLATE = [
   { titulo: 'Montagem do Package', colecao: 'aos' },
   { titulo: 'Assinatura da advogada', colecao: 'aos' },
   { titulo: 'Processo de envio', colecao: 'aos' },
-  { titulo: 'Protocolo realizado', colecao: 'aos' }
+  { titulo: 'Protocolo realizado', colecao: 'aos' },
+  { titulo: 'Compartilhar o tracking com o cliente', colecao: 'aos' },
+  { titulo: 'O AOS foi aprovado?', tipo: 'marco', marcoTipo: 'recurso_decisao', colecao: 'aos' }
 ];
 
 export const WEEKDAYS = [

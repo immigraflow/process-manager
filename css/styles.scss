@@ -204,6 +204,11 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   &.marco-status-pendente::before{ background: var(--warning); border-color: var(--warning); }
   &.marco-status-sim::before{ background: var(--done); border-color: var(--done); }
   &.marco-status-nao::before{ background: var(--urgent); border-color: var(--urgent); }
+  &.marco-status-analise::before{ background: var(--gray-badge); border-color: var(--gray-badge); }
+  &.marco-status-aprovado::before{ background: var(--done); border-color: var(--done); }
+  &.marco-status-negado::before{ background: var(--urgent); border-color: var(--urgent); }
+  &.marco-status-rfe::before{ background: var(--warning); border-color: var(--warning); }
+  &.marco-status-rejeitado::before{ background: var(--urgent); border-color: var(--urgent); }
 }
 
 .status-select{
@@ -239,6 +244,11 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   &-status-pendente{ border-color: var(--warning); background: var(--warning-soft); }
   &-status-sim{ border-color: var(--done); background: var(--done-soft); }
   &-status-nao{ border-color: var(--urgent); background: var(--urgent-soft); }
+  &-status-analise{ border-color: var(--gray-badge); background: var(--gray-badge-soft); }
+  &-status-aprovado{ border-color: var(--done); background: var(--done-soft); }
+  &-status-negado{ border-color: var(--urgent); background: var(--urgent-soft); }
+  &-status-rfe{ border-color: var(--warning); background: var(--warning-soft); }
+  &-status-rejeitado{ border-color: var(--urgent); background: var(--urgent-soft); }
 }
 .marco-label{
   font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
@@ -250,6 +260,11 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 .marco-card-status-pendente .marco-label{ background: var(--warning); }
 .marco-card-status-sim .marco-label{ background: var(--done); }
 .marco-card-status-nao .marco-label{ background: var(--urgent); }
+.marco-card-status-analise .marco-label{ background: var(--gray-badge); }
+.marco-card-status-aprovado .marco-label{ background: var(--done); }
+.marco-card-status-negado .marco-label{ background: var(--urgent); }
+.marco-card-status-rfe .marco-label{ background: var(--warning); }
+.marco-card-status-rejeitado .marco-label{ background: var(--urgent); }
 
 // ============================================================
 // FORMS
@@ -292,9 +307,10 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   font-family: var(--font-mono); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;
   &::before, &::after{ content: ''; flex: 1; border-top: 2px solid var(--line); }
 }
+.nvc-aos-choice{ display: flex; gap: 10px; margin-bottom: 14px; }
 .choice-btn{
-  padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: #fff;
-  font-size: 13px; font-weight: 500; cursor: pointer; margin-right: 8px;
+  flex: 1 1 50%; padding: 8px 18px; border-radius: var(--radius); border: 1px solid var(--line); background: #fff;
+  font-size: 13px; font-weight: 500; cursor: pointer; text-align: center;
   &.active{ background: var(--accent-soft); border-color: var(--accent); color: var(--accent-dark); }
 }
 

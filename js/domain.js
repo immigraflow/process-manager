@@ -6,6 +6,7 @@ export function newMarcoFields(tipo){
   if(tipo === 'pwd') return { houveRfi:false, rfiData:'', rfiPrazo:'', dataEmissao:'', validade:'' };
   if(tipo === 'eta9089') return { dataEmissao:'', validade:'' };
   if(tipo === 'i140') return { dataProtocolo:'', dataPrioridade:'', validade:'', prazoAlvo:'' };
+  if(tipo === 'recurso_decisao') return { recursoTipo:'', recursoAplicadoPara:'' };
   return {};
 }
 

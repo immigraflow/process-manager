@@ -3,8 +3,7 @@ import { state, getCase } from './state.js';
 import { doLogout, doLogin, doForgotPassword, doChangePassword } from './auth.js';
 import * as api from './api.js';
 import { etapaPayloadFromTemplateItem, etapaRowToLocal } from './mappers.js';
-import { AOS_TEMPLATE } from './constants.js';
-import { MARCO_DEFS } from './constants.js';
+import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO } from './constants.js';
 import { todayISO } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -240,6 +239,15 @@ export function attachEvents(render){
   wireEtapaForm('ne', render);
   wireEtapaForm('ee', render);
 
+  // Mostra/esconde o campo de recurso conforme o status selecionado no formulário do marco
+  const marcoStatusSelect = document.getElementById('ee-m-status');
+  const recursoWrap = document.getElementById('ee-m-recurso-wrap');
+  if(marcoStatusSelect && recursoWrap){
+    marcoStatusSelect.onchange = () => {
+      recursoWrap.style.display = RECURSO_STATUS_GATILHO.includes(marcoStatusSelect.value) ? '' : 'none';
+    };
+  }
+
   const saveMarcoBtn = document.getElementById('ee-save-marco');
   if(saveMarcoBtn) saveMarcoBtn.onclick = () => {
     const c = getCase(saveMarcoBtn.getAttribute('data-case'));
@@ -263,6 +271,9 @@ export function attachEvents(render){
       marco.dataProtocolo = document.getElementById('ee-m-protocolo').value;
       marco.dataPrioridade = document.getElementById('ee-m-prioridade').value;
       marco.validade = document.getElementById('ee-m-validade').value;
+    } else if(e.marcoTipo === 'recurso_decisao'){
+      const recursoEl = document.getElementById('ee-m-recurso');
+      marco.recursoTipo = recursoEl ? recursoEl.value : (marco.recursoTipo || '');
     }
 
     withBusy(render, async () => {
@@ -276,6 +287,24 @@ export function attachEvents(render){
       if(status === 'certificado' && marco.validade){
         const alvo = c.etapas.find(x => x.tipo === 'marco' && x.marcoTipo === 'i140');
         if(alvo){ const novoMarco = { ...alvo.marco, prazoAlvo: marco.validade }; await api.dbUpdateEtapa(alvo.id, { marco: novoMarco }); alvo.marco = novoMarco; }
+      }
+
+      // Recurso (L3): sempre que uma decisão vem negada/RFE/rejeitada e um recurso é
+      // selecionado, gera uma nova rodada de etapas + um novo marco de decisão ao final
+      // — que pode, por sua vez, disparar outra rodada (loop), pois usa o mesmo tipo de marco.
+      if(e.marcoTipo === 'recurso_decisao' && RECURSO_STATUS_GATILHO.includes(status) && marco.recursoTipo && marco.recursoTipo !== marco.recursoAplicadoPara){
+        let ordem = c.etapas.length;
+        const payloads = RECURSO_STEPS.map(t => { const p = etapaPayloadFromTemplateItem(t, ordem++); p.case_id = c.id; return p; });
+        const marcoPayload = etapaPayloadFromTemplateItem(RECURSO_MARCO, ordem++);
+        marcoPayload.case_id = c.id;
+        payloads.push(marcoPayload);
+        const rows = await api.dbInsertEtapasBulk(payloads);
+        rows.sort((a,b) => a.ordem - b.ordem);
+        rows.forEach(row => c.etapas.push(etapaRowToLocal(row)));
+        marco.recursoAplicadoPara = marco.recursoTipo;
+        await api.dbUpdateEtapa(e.id, { marco });
+        e.marco = marco;
+        showToast('Nova lista de etapas de recurso adicionada à linha do tempo!');
       }
 
       const doneKeys = def.doneKeys || [def.doneKey];

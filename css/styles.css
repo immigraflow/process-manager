@@ -545,6 +545,26 @@ body {
   background: var(--urgent);
   border-color: var(--urgent);
 }
+.etapa.marco-status-analise::before {
+  background: var(--gray-badge);
+  border-color: var(--gray-badge);
+}
+.etapa.marco-status-aprovado::before {
+  background: var(--done);
+  border-color: var(--done);
+}
+.etapa.marco-status-negado::before {
+  background: var(--urgent);
+  border-color: var(--urgent);
+}
+.etapa.marco-status-rfe::before {
+  background: var(--warning);
+  border-color: var(--warning);
+}
+.etapa.marco-status-rejeitado::before {
+  background: var(--urgent);
+  border-color: var(--urgent);
+}
 
 .status-select {
   font-family: var(--font-body);
@@ -664,6 +684,26 @@ body {
   border-color: var(--urgent);
   background: var(--urgent-soft);
 }
+.marco-card-status-analise {
+  border-color: var(--gray-badge);
+  background: var(--gray-badge-soft);
+}
+.marco-card-status-aprovado {
+  border-color: var(--done);
+  background: var(--done-soft);
+}
+.marco-card-status-negado {
+  border-color: var(--urgent);
+  background: var(--urgent-soft);
+}
+.marco-card-status-rfe {
+  border-color: var(--warning);
+  background: var(--warning-soft);
+}
+.marco-card-status-rejeitado {
+  border-color: var(--urgent);
+  background: var(--urgent-soft);
+}
 
 .marco-label {
   font-family: var(--font-mono);
@@ -689,13 +729,36 @@ body {
 .marco-card-i140 .marco-label {
   background: var(--marco-i140);
 }
+
 .marco-card-status-pendente .marco-label {
   background: var(--warning);
 }
+
 .marco-card-status-sim .marco-label {
   background: var(--done);
 }
+
 .marco-card-status-nao .marco-label {
+  background: var(--urgent);
+}
+
+.marco-card-status-analise .marco-label {
+  background: var(--gray-badge);
+}
+
+.marco-card-status-aprovado .marco-label {
+  background: var(--done);
+}
+
+.marco-card-status-negado .marco-label {
+  background: var(--urgent);
+}
+
+.marco-card-status-rfe .marco-label {
+  background: var(--warning);
+}
+
+.marco-card-status-rejeitado .marco-label {
   background: var(--urgent);
 }
 
@@ -854,7 +917,14 @@ body {
   border-top: 2px solid var(--line);
 }
 
+.nvc-aos-choice {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
 .choice-btn {
+  flex: 1 1 50%;
   padding: 8px 18px;
   border-radius: var(--radius);
   border: 1px solid var(--line);
@@ -862,7 +932,7 @@ body {
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  margin-right: 8px;
+  text-align: center;
 }
 .choice-btn.active {
   background: var(--accent-soft);

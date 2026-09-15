@@ -1,5 +1,5 @@
 import { state, getCase, findStatusMarco } from '../state.js';
-import { MARCO_DEFS, STATUS_OPTIONS } from '../constants.js';
+import { MARCO_DEFS, STATUS_OPTIONS, RECURSO_TIPOS, RECURSO_STATUS_GATILHO } from '../constants.js';
 import { isEtapaDone, caseFullyDone, caseOverallStatus, deadlineStatus, deadlineLabel } from '../domain.js';
 import { escapeHtml, fmtDate, todayISO } from '../utils.js';
 
@@ -138,7 +138,7 @@ export function renderNvcAosBlock(c, aosEtapasParam){
   const aosEtapas = aosEtapasParam || c.etapas.filter(e => e.colecao === 'aos');
   return `
     <div class="separator-line"><span>Pós I-140</span></div>
-    <div class="form-row" style="margin-bottom:14px;">
+    <div class="nvc-aos-choice">
       <button class="choice-btn ${c.nvcAosChoice==='nvc'?'active':''}" data-nvc-aos="nvc" data-case="${c.id}">NVC</button>
       <button class="choice-btn ${c.nvcAosChoice==='aos'?'active':''}" data-nvc-aos="aos" data-case="${c.id}">AOS</button>
     </div>
@@ -161,7 +161,7 @@ export function renderNvcAosBlock(c, aosEtapasParam){
 export function renderEtapa(c, e){
   const isEditing = state.editingEtapaId === e.id;
   if(e.tipo === 'marco'){
-    if(isEditing) return `<div class="etapa marco marco-${e.marcoTipo}${e.marcoTipo==='status' ? ' marco-status-'+e.status : ''}">${renderMarcoForm(c, e)}</div>`;
+    if(isEditing) return `<div class="etapa marco marco-${e.marcoTipo}${(e.marcoTipo==='status' || e.marcoTipo==='recurso_decisao') ? ' marco-status-'+e.status : ''}">${renderMarcoForm(c, e)}</div>`;
     return renderMarcoCard(c, e);
   }
   if(isEditing) return `<div class="etapa st-${e.status}">${renderEtapaForm(c, e)}</div>`;
@@ -209,10 +209,13 @@ function renderMarcoCard(c, e){
     extra = `${m.dataEmissao?`<span>Certificação: ${fmtDate(m.dataEmissao)}</span>`:''}${m.validade?`<span>Validade: ${fmtDate(m.validade)}</span>`:''}`;
   } else if(e.marcoTipo === 'i140'){
     extra = `${m.dataProtocolo?`<span>Protocolo: ${fmtDate(m.dataProtocolo)}</span>`:''}${m.dataPrioridade?`<span>Data de prioridade: ${fmtDate(m.dataPrioridade)}</span>`:''}${m.prazoAlvo?`<span>Prazo-alvo: ${fmtDate(m.prazoAlvo)}</span>`:''}`;
+  } else if(e.marcoTipo === 'recurso_decisao' && m.recursoTipo){
+    const rt = RECURSO_TIPOS.find(r => r.key === m.recursoTipo);
+    extra = `<span>Recurso: ${rt ? rt.label : m.recursoTipo}</span>`;
   }
-  const statusModifier = e.marcoTipo === 'status' ? ` marco-card-status-${e.status}` : '';
+  const statusModifier = (e.marcoTipo === 'status' || e.marcoTipo === 'recurso_decisao') ? ` marco-card-status-${e.status}` : '';
   return `
-    <div class="etapa marco marco-${e.marcoTipo}${e.marcoTipo==='status' ? ' marco-status-'+e.status : ''}">
+    <div class="etapa marco marco-${e.marcoTipo}${(e.marcoTipo==='status' || e.marcoTipo==='recurso_decisao') ? ' marco-status-'+e.status : ''}">
       <div class="etapa-card marco-card marco-card-${e.marcoTipo}${statusModifier}">
         <div class="marco-label">Marco · ${def.label}</div>
         <div class="etapa-top">
@@ -266,6 +269,20 @@ function renderMarcoForm(c, e){
       <div class="form-row"><div class="form-field"><label>Validade (opcional)</label><input type="date" id="ee-m-validade" value="${m.validade||''}"></div></div>
       ${m.prazoAlvo ? `<div class="field-hint">Prazo-alvo (definido pela validade do marco ETA 9089): ${fmtDate(m.prazoAlvo)}</div>` : ''}
     `;
+  } else if(e.marcoTipo === 'recurso_decisao'){
+    const mostrarRecurso = RECURSO_STATUS_GATILHO.includes(e.status);
+    extraFields = `
+      <div class="form-row" id="ee-m-recurso-wrap" style="${mostrarRecurso ? '' : 'display:none;'}">
+        <div class="form-field">
+          <label>Recurso a interpor</label>
+          <select id="ee-m-recurso">
+            <option value="">Selecione...</option>
+            ${RECURSO_TIPOS.map(r => `<option value="${r.key}" ${m.recursoTipo===r.key?'selected':''}>${r.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="field-hint">Ao selecionar um recurso e salvar, uma nova lista de etapas de recurso é adicionada automaticamente à linha do tempo (e pode se repetir, se houver nova decisão negativa depois).</div>
+    `;
   }
   return `
     <div class="form-card">
@@ -273,7 +290,7 @@ function renderMarcoForm(c, e){
       <div class="form-row"><div class="form-field"><label>Status do marco</label><select id="ee-m-status">${def.statusOptions.map(s => `<option value="${s.key}" ${e.status===s.key?'selected':''}>${s.label}</option>`).join('')}</select></div></div>
       ${extraFields}
       <div class="form-row"><div class="form-field"><label>Observações</label><textarea id="ee-obs">${escapeHtml(e.obs||'')}</textarea></div></div>
-      <div class="form-actions"><button class="btn text" id="ee-cancel">Cancelar</button><button class="btn primary" id="ee-save-marco" data-case="${c.id}" data-etapa="${e.id}" ${state.busy?'disabled':''}>${state.busy ? `<i class="pi pi-spinner pi-spin"></i> ${state.busyLabel || 'Salvando...'}` : 'Salvar marco'}</button></div>
+      <div class="form-actions"><button class="btn text" id="ee-cancel">Cancelar</button><button class="btn primary" id="ee-save-marco" data-case="${c.id}" data-etapa="${e.id}" ${state.busy?'disabled':''}>${state.busy ? `<i class="pi pi-spinner pi-spin"></i> ${state.busyLabel || 'Salvando...'}` : 'Salvar'}</button></div>
     </div>
   `;
 }
