@@ -43,8 +43,6 @@ export const DEFAULT_TEMPLATE = [
   { titulo: 'Liberar o ailaw para I-140 (revisar a cada 15 dias se todos os docs já estão lá — adicionar lembrete)', reminderDays: 15 },
   { titulo: 'Solicitar preenchimento dos forms (10 dias depois verificar se foi concluído; após isso, lembrete de pendência ou cobrança)', reminderDays: 10 },
   { titulo: 'Liberar docs para assinatura do empregador' },
-  { titulo: 'Confeccionar forms de pagamento' },
-  { titulo: 'Enviar últimos docs para assinatura do empregador' },
   { titulo: 'Montar package (7 dias)' },
   { titulo: 'Em assinatura da advogada (dura 7 dias; após isso, lembrete de pendência ou cobrança)' },
   { titulo: 'Liberar para a equipe de envio' },
