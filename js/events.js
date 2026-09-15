@@ -139,32 +139,43 @@ export function attachEvents(render){
   }
 
   const btnNewCase = document.getElementById('btn-new-case');
-  if(btnNewCase) btnNewCase.onclick = () => { state.showNewCaseForm = !state.showNewCaseForm; render(); };
+  if(btnNewCase) btnNewCase.onclick = () => { state.editingCaseId = null; state.showNewCaseForm = !state.showNewCaseForm; render(); };
   const ncCancel = document.getElementById('nc-cancel');
-  if(ncCancel) ncCancel.onclick = () => { state.showNewCaseForm = false; render(); };
+  if(ncCancel) ncCancel.onclick = () => { state.showNewCaseForm = false; state.editingCaseId = null; render(); };
   const ncSave = document.getElementById('nc-save');
   if(ncSave) ncSave.onclick = () => {
     const nome = document.getElementById('nc-nome').value.trim();
     const numero = document.getElementById('nc-numero').value.trim();
     const cliente = document.getElementById('nc-cliente').value.trim();
     if(!nome){ document.getElementById('nc-error').style.display = 'block'; return; }
+    const editCaseId = ncSave.getAttribute('data-case');
     withBusy(render, async () => {
-      const row = await api.dbInsertCase(state.orgId, nome, numero, cliente);
-      // 1 única requisição para inserir todas as etapas padrão de uma vez
-      const payloads = state.data.template.map((t, i) => {
-        const p = etapaPayloadFromTemplateItem(t, i);
-        p.case_id = row.id;
-        return p;
-      });
-      const etapaRows = await api.dbInsertEtapasBulk(payloads);
-      etapaRows.sort((a,b) => a.ordem - b.ordem);
-      const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, etapas: etapaRows.map(etapaRowToLocal) };
-      state.data.cases.unshift(newCase);
-      state.selectedCaseId = newCase.id;
-      state.showNewCaseForm = false;
-      showToast('Processo incluído com sucesso!');
+      if(editCaseId){
+        await api.dbUpdateCase(editCaseId, { nome, numero: numero || null, cliente: cliente || null });
+        const c = getCase(editCaseId);
+        if(c){ c.nome = nome; c.numero = numero; c.cliente = cliente; }
+        state.editingCaseId = null;
+        showToast('Processo atualizado com sucesso!');
+      } else {
+        const row = await api.dbInsertCase(state.orgId, nome, numero, cliente);
+        // 1 única requisição para inserir todas as etapas padrão de uma vez
+        const payloads = state.data.template.map((t, i) => {
+          const p = etapaPayloadFromTemplateItem(t, i);
+          p.case_id = row.id;
+          return p;
+        });
+        const etapaRows = await api.dbInsertEtapasBulk(payloads);
+        etapaRows.sort((a,b) => a.ordem - b.ordem);
+        const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, etapas: etapaRows.map(etapaRowToLocal) };
+        state.data.cases.unshift(newCase);
+        state.selectedCaseId = newCase.id;
+        state.showNewCaseForm = false;
+        showToast('Processo incluído com sucesso!');
+      }
     });
   };
+
+  document.querySelectorAll('[data-edit-case]').forEach(el => { el.onclick = (ev) => { ev.stopPropagation(); state.editingCaseId = el.getAttribute('data-edit-case'); state.showNewCaseForm = false; render(); }; });
 
   document.querySelectorAll('[data-case-id]').forEach(el => { el.onclick = () => { state.selectedCaseId = el.getAttribute('data-case-id'); state.showEtapaFormFor = null; state.editingEtapaId = null; render(); }; });
 

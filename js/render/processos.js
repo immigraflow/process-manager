@@ -14,7 +14,7 @@ export function renderProcessosView(){
           <button class="icon-btn" id="btn-template" title="Etapas padrão"><i class="pi pi-cog"></i></button>
         </div>
         ${state.showTemplateManager ? renderTemplateManager() : ''}
-        ${state.showNewCaseForm ? renderNewCaseForm() : ''}
+        ${(state.showNewCaseForm || state.editingCaseId) ? renderCaseForm(state.editingCaseId ? getCase(state.editingCaseId) : null) : ''}
         <div class="search-field">
           <i class="pi pi-search"></i>
           <input type="text" id="case-search-input" placeholder="Buscar processo pelo nome..." value="${escapeHtml(state.caseSearchQuery)}">
@@ -73,16 +73,17 @@ function renderTemplateManager(){
   `;
 }
 
-function renderNewCaseForm(){
+function renderCaseForm(existing){
+  const isEdit = !!existing;
   return `
     <div class="form-card" id="new-case-form">
-      <div class="form-row"><div class="form-field" style="flex: 2;"><label>Nome do caso</label><input type="text" id="nc-nome" placeholder="Ex: Ação trabalhista - Silva"></div></div>
+      <div class="form-row"><div class="form-field" style="flex: 2;"><label>Nome do caso</label><input type="text" id="nc-nome" placeholder="Ex: Ação trabalhista - Silva" value="${isEdit ? escapeHtml(existing.nome) : ''}"></div></div>
       <div class="form-row">
-        <div class="form-field"><label>Nº do processo (opcional)</label><input type="text" id="nc-numero" placeholder="0001234-56.2026.8.19.0001"></div>
-        <div class="form-field"><label>Cliente (opcional)</label><input type="text" id="nc-cliente" placeholder="Nome do cliente"></div>
+        <div class="form-field"><label>Nº do processo (opcional)</label><input type="text" id="nc-numero" placeholder="0001234-56.2026.8.19.0001" value="${isEdit ? escapeHtml(existing.numero || '') : ''}"></div>
+        <div class="form-field"><label>Cliente (opcional)</label><input type="text" id="nc-cliente" placeholder="Nome do cliente" value="${isEdit ? escapeHtml(existing.cliente || '') : ''}"></div>
       </div>
       <div id="nc-error" class="field-error" style="display:none;">Digite um nome para o caso.</div>
-      <div class="form-actions"><button class="btn text" id="nc-cancel">Cancelar</button><button class="btn primary" id="nc-save" ${state.busy?'disabled':''}>${state.busy ? `<i class="pi pi-spinner pi-spin"></i> ${state.busyLabel || 'Salvando...'}` : 'Salvar caso'}</button></div>
+      <div class="form-actions"><button class="btn text" id="nc-cancel">Cancelar</button><button class="btn primary" id="nc-save" ${isEdit ? `data-case="${existing.id}"` : ''} ${state.busy?'disabled':''}>${state.busy ? `<i class="pi pi-spinner pi-spin"></i> ${state.busyLabel || 'Salvando...'}` : (isEdit ? 'Alterar' : 'Salvar')}</button></div>
     </div>
   `;
 }
@@ -93,8 +94,13 @@ function renderCaseCard(c){
   const done = caseFullyDone(c);
   return `
     <div class="case-card status-${status} ${c.id === state.selectedCaseId ? 'selected' : ''}" data-case-id="${c.id}">
-      ${c.numero ? `<div class="numero">${escapeHtml(c.numero)}</div>` : ''}
-      <div class="nome">${escapeHtml(c.nome)}${done ? '<span class="done-check" title="Processo concluído">✓</span>' : ''}</div>
+      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:6px;">
+        <div style="flex:1; min-width:0;">
+          ${c.numero ? `<div class="numero">${escapeHtml(c.numero)}</div>` : ''}
+          <div class="nome">${escapeHtml(c.nome)}${done ? '<span class="done-check" title="Processo concluído">✓</span>' : ''}</div>
+        </div>
+        <button class="mini-btn" data-edit-case="${c.id}" title="Editar processo" style="flex-shrink:0;"><i class="pi pi-pencil"></i></button>
+      </div>
       ${c.cliente ? `<div class="cliente">${escapeHtml(c.cliente)}</div>` : ''}
       <div class="meta-row">
         <span class="etapa-count">${c.etapas.length} etapa${c.etapas.length === 1 ? '' : 's'} · ${pendentes} pendente${pendentes === 1 ? '' : 's'}</span>

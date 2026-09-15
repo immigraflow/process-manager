@@ -14,6 +14,7 @@ export const state = {
 
   selectedCaseId: null,
   showNewCaseForm: false,
+  editingCaseId: null,
   showEtapaFormFor: null,
   editingEtapaId: null,
   showTemplateManager: false,
