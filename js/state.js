@@ -18,7 +18,8 @@ export const state = {
   showEtapaFormFor: null,
   editingEtapaId: null,
   showTemplateManager: false,
-  currentView: 'processos',
+  currentView: 'inicio',
+  inicioPeriodo: '12', // período dos gráficos mensais da aba Início: '6' | '12' | 'ano'
   resultMonth: new Date().toISOString().slice(0,7),
   priorityDateQuery: '',
   storageReady: false,

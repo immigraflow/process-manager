@@ -126,6 +126,17 @@ export function attachEvents(render){
 
   document.querySelectorAll('[data-view]').forEach(el => { el.onclick = () => { state.currentView = el.getAttribute('data-view'); render(); }; });
 
+  // Aba Início: período dos gráficos mensais e atalho "abrir processo" nos próximos prazos
+  const inicioPeriodo = document.getElementById('inicio-periodo');
+  if(inicioPeriodo) inicioPeriodo.onchange = () => { state.inicioPeriodo = inicioPeriodo.value; render(); };
+  document.querySelectorAll('[data-inicio-open]').forEach(el => { el.onclick = () => {
+    state.selectedCaseId = el.getAttribute('data-inicio-open');
+    state.showEtapaFormFor = null; state.editingEtapaId = null;
+    state.currentView = 'processos';
+    render();
+    window.scrollTo({ top: 0 });
+  }; });
+
   const caseSearch = document.getElementById('case-search-input');
   if(caseSearch){
     caseSearch.oninput = () => {
