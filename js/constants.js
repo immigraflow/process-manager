@@ -57,6 +57,9 @@ export const KANBAN_COLUMNS = [
   { key: 'andamento', label: 'Em andamento' }
 ];
 
+/** Ordem de exibição dos processos na lista lateral da aba Processos (chaves de KANBAN_COLUMNS) */
+export const SIDEBAR_STATUS_ORDER = ['urgente', 'revisao', 'andamento', 'liberada'];
+
 export const DEFAULT_TEMPLATE = [
   { titulo: 'Work session' },
   { titulo: 'Envio do Form de coleta de informações' },

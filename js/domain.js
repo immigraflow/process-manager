@@ -1,5 +1,5 @@
 // Regras de domínio: status de etapas/marcos, prazos, urgência, categoria kanban
-import { MARCO_DEFS } from './constants.js';
+import { MARCO_DEFS, SIDEBAR_STATUS_ORDER } from './constants.js';
 import { daysUntil } from './utils.js';
 
 export function newMarcoFields(tipo){
@@ -129,13 +129,23 @@ export function faseDaEtapa(c, e){
 }
 
 /**
- * Ordena os processos pela data de cadastro, do mais antigo para o mais recente (ordem da lista lateral).
- * Processos sem data vão para o fim; empates mantêm a ordem original.
+ * Ordem da lista lateral da aba Processos, pelo status da etapa atual (mesmas categorias do Kanban):
+ * 1º Urgentes (vencidos ou em pendência), 2º Em revisão, 3º Em andamento, 4º Liberadas para trabalhar.
+ * Processos sem etapa pendente (concluídos, via NVC ou sem fluxo) vão por último.
+ * Dentro de cada grupo, do mais antigo para o mais recente (data de cadastro); empates mantêm a ordem original.
  */
-export function orderCasesByDate(cases){
+export function orderCasesByStatus(cases){
+  const posicao = c => {
+    if(c.nvcAosChoice === 'nvc') return SIDEBAR_STATUS_ORDER.length;
+    const cur = currentEtapa(c);
+    const idx = cur ? SIDEBAR_STATUS_ORDER.indexOf(computeCategory(cur)) : -1;
+    return idx < 0 ? SIDEBAR_STATUS_ORDER.length : idx;
+  };
   return cases
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => (a.c.createdAt || '9999').localeCompare(b.c.createdAt || '9999') || a.i - b.i)
+    .map((c, i) => ({ c, i, grupo: posicao(c) }))
+    .sort((a, b) => a.grupo - b.grupo
+      || (a.c.createdAt || '9999').localeCompare(b.c.createdAt || '9999')
+      || a.i - b.i)
     .map(x => x.c);
 }
 
