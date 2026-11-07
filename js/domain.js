@@ -30,12 +30,28 @@ export function deadlineStatus(etapa){
   return 'ok';
 }
 
-export function deadlineLabel(etapa){
-  if(!etapa.prazo) return null;
-  const diff = daysUntil(etapa.prazo);
+function labelPrazo(iso){
+  const diff = daysUntil(iso);
   if(diff < 0) return `Vencido há ${Math.abs(diff)}d`;
   if(diff === 0) return 'Vence hoje';
   return `${diff}d restantes`;
+}
+
+export function deadlineLabel(etapa){
+  if(!etapa.prazo) return null;
+  return labelPrazo(etapa.prazo);
+}
+
+/** Selo de prazo de uma etapa ou marco pendente: { status: 'vencido'|'proximo'|'ok', label } ou null */
+export function prazoInfo(e){
+  if(isEtapaDone(e)) return null;
+  if(e.tipo === 'marco'){
+    const alvo = e.marco.prazoAlvo || (e.marcoTipo === 'pwd' && e.marco.houveRfi ? e.marco.rfiPrazo : null);
+    if(!alvo) return null;
+    return { status: urgencyOf(e), label: labelPrazo(alvo) };
+  }
+  if(!e.prazo) return null;
+  return { status: deadlineStatus(e), label: labelPrazo(e.prazo) };
 }
 
 export function urgencyOf(e){
@@ -82,6 +98,50 @@ export function computeCategory(e){
 }
 
 export function currentEtapa(c){ return c.etapas.find(e => !isEtapaDone(e)) || null; }
+
+/**
+ * Fases do fluxo principal (colecao 'padrao'), delimitadas pela posição dos marcos PWD e ETA 9089:
+ * PWD (até o marco PWD), Recrutamento e ETA 9089 (até o marco ETA) e I-140 (o resto).
+ * Mesma regra de dashboard.faseAtual. Sem nenhum desses marcos (template customizado), vira uma fase única.
+ */
+export function agruparPorFase(etapasPadrao){
+  const iPwd = etapasPadrao.findIndex(e => e.tipo === 'marco' && e.marcoTipo === 'pwd');
+  const iEta = etapasPadrao.findIndex(e => e.tipo === 'marco' && e.marcoTipo === 'eta9089');
+  if(iPwd < 0 && iEta < 0) return etapasPadrao.length ? [{ key: 'etapas', nome: 'Etapas', etapas: etapasPadrao }] : [];
+  const fases = [
+    { key: 'pwd', nome: 'PWD', etapas: [] },
+    { key: 'recrutamento', nome: 'Recrutamento e ETA 9089', etapas: [] },
+    { key: 'i140', nome: 'I-140', etapas: [] }
+  ];
+  etapasPadrao.forEach((e, i) => {
+    const idx = (iPwd >= 0 && i <= iPwd) ? 0 : (iEta >= 0 && i <= iEta) ? 1 : 2;
+    fases[idx].etapas.push(e);
+  });
+  return fases.filter(f => f.etapas.length);
+}
+
+/** Fase { key, nome } a que a etapa pertence (etapas de AOS e recursos ficam em 'aos') */
+export function faseDaEtapa(c, e){
+  if(!e) return null;
+  if(e.colecao === 'aos') return { key: 'aos', nome: 'AOS e recursos' };
+  const fase = agruparPorFase(c.etapas.filter(x => x.colecao !== 'aos')).find(f => f.etapas.includes(e));
+  return fase ? { key: fase.key, nome: fase.nome } : null;
+}
+
+/**
+ * Ordena os processos por importância decrescente (mesmo critério da aba Prioridades):
+ * 1º em andamento com prazo, do mais próximo/vencido ao mais distante; 2º em andamento sem prazo;
+ * 3º concluídos (ou finalizados via NVC). Empates mantêm a ordem original.
+ */
+export function rankCasesByImportance(cases){
+  const info = cases.map((c, i) => {
+    const encerrado = caseFullyDone(c) || c.nvcAosChoice === 'nvc';
+    const nearest = encerrado ? null : nearestDeadline(c);
+    return { c, i, grupo: encerrado ? 2 : (nearest ? 0 : 1), date: nearest ? nearest.date : '' };
+  });
+  info.sort((a, b) => a.grupo - b.grupo || a.date.localeCompare(b.date) || a.i - b.i);
+  return info.map(x => x.c);
+}
 
 export function nearestDeadline(c){
   let candidates = [];

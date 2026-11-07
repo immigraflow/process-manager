@@ -21,6 +21,9 @@ export const state = {
   editingEtapaId: null,
   showTemplateManager: false,
   currentView: 'inicio',
+  casesExpanded: false, // lista lateral de processos: false = só os 10 mais importantes ("VER MAIS")
+  fasesAbertas: {}, // { 'caseId:faseKey': true|false } — sobrescreve a abertura padrão (fase da etapa atual)
+  expandedEtapaId: null, // etapa (não atual) aberta na linha do tempo
   inicioPeriodo: '12', // período dos gráficos mensais da aba Início: '6' | '12' | 'ano'
   resultMonth: new Date().toISOString().slice(0,7),
   priorityDateQuery: '',

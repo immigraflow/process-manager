@@ -3,7 +3,8 @@ import { state, getCase } from './state.js';
 import { doLogout, doLogin, doForgotPassword, doChangePassword } from './auth.js';
 import * as api from './api.js';
 import { etapaPayloadFromTemplateItem, etapaRowToLocal } from './mappers.js';
-import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO, visaTemFluxo } from './constants.js';
+import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO, CASE_LIST_LIMIT, visaTemFluxo } from './constants.js';
+import { agruparPorFase, faseDaEtapa, rankCasesByImportance } from './domain.js';
 import { todayISO } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -120,6 +121,12 @@ export function attachConfirmDialogEvents(render){
   };
 }
 
+/** Se o processo selecionado ficaria escondido atrás do "VER MAIS", abre a lista inteira */
+function revealSelectedCase(){
+  const ranked = rankCasesByImportance(state.data.cases);
+  if(ranked.findIndex(c => c.id === state.selectedCaseId) >= CASE_LIST_LIMIT) state.casesExpanded = true;
+}
+
 export function attachEvents(render){
   attachProfileMenuEvents(render);
   attachConfirmDialogEvents(render);
@@ -131,7 +138,8 @@ export function attachEvents(render){
   if(inicioPeriodo) inicioPeriodo.onchange = () => { state.inicioPeriodo = inicioPeriodo.value; render(); };
   document.querySelectorAll('[data-inicio-open]').forEach(el => { el.onclick = () => {
     state.selectedCaseId = el.getAttribute('data-inicio-open');
-    state.showEtapaFormFor = null; state.editingEtapaId = null;
+    state.showEtapaFormFor = null; state.editingEtapaId = null; state.expandedEtapaId = null;
+    revealSelectedCase();
     state.currentView = 'processos';
     render();
     window.scrollTo({ top: 0 });
@@ -203,6 +211,8 @@ export function attachEvents(render){
         const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, tipoVisto: row.tipo_visto || tipoVisto, etapas: etapaRows.map(etapaRowToLocal) };
         state.data.cases.unshift(newCase);
         state.selectedCaseId = newCase.id;
+        state.expandedEtapaId = null;
+        revealSelectedCase();
         state.showNewCaseForm = false;
         state.newCaseTipo = ''; state.newCaseDraft = null;
         showToast('Processo incluído com sucesso!');
@@ -212,7 +222,30 @@ export function attachEvents(render){
 
   document.querySelectorAll('[data-edit-case]').forEach(el => { el.onclick = (ev) => { ev.stopPropagation(); state.editingCaseId = el.getAttribute('data-edit-case'); state.showNewCaseForm = false; render(); }; });
 
-  document.querySelectorAll('[data-case-id]').forEach(el => { el.onclick = () => { state.selectedCaseId = el.getAttribute('data-case-id'); state.showEtapaFormFor = null; state.editingEtapaId = null; render(); }; });
+  document.querySelectorAll('[data-case-id]').forEach(el => { el.onclick = () => { state.selectedCaseId = el.getAttribute('data-case-id'); state.showEtapaFormFor = null; state.editingEtapaId = null; state.expandedEtapaId = null; render(); }; });
+
+  // Lista lateral: recolhe/expande além dos 10 primeiros
+  const btnCasesToggle = document.getElementById('btn-cases-toggle');
+  if(btnCasesToggle) btnCasesToggle.onclick = () => { state.casesExpanded = !state.casesExpanded; render(); };
+
+  // Linha do tempo em fases: abrir/fechar fase, abrir etapa não atual, expandir/recolher tudo
+  document.querySelectorAll('[data-fase-toggle]').forEach(el => { el.onclick = () => {
+    state.fasesAbertas[el.getAttribute('data-fase-toggle')] = el.getAttribute('aria-expanded') !== 'true';
+    render();
+  }; });
+  document.querySelectorAll('[data-etapa-exp]').forEach(el => { el.onclick = () => {
+    const id = el.getAttribute('data-etapa-exp');
+    state.expandedEtapaId = state.expandedEtapaId === id ? null : id;
+    render();
+  }; });
+  document.querySelectorAll('[data-fases-all]').forEach(el => { el.onclick = () => {
+    const c = getCase(el.getAttribute('data-case'));
+    if(!c) return;
+    const abrir = el.getAttribute('data-fases-all') === 'open';
+    agruparPorFase(c.etapas.filter(e => e.colecao !== 'aos')).forEach(f => { state.fasesAbertas[`${c.id}:${f.key}`] = abrir; });
+    if(!abrir) state.expandedEtapaId = null;
+    render();
+  }; });
 
   const btnDeleteCase = document.getElementById('btn-delete-case');
   if(btnDeleteCase) btnDeleteCase.onclick = () => {
@@ -223,7 +256,7 @@ export function attachEvents(render){
       onConfirm: async () => {
         await api.dbDeleteCase(state.selectedCaseId);
         state.data.cases = state.data.cases.filter(c => c.id !== state.selectedCaseId);
-        state.selectedCaseId = state.data.cases.length ? state.data.cases[0].id : null;
+        state.selectedCaseId = state.data.cases.length ? rankCasesByImportance(state.data.cases)[0].id : null;
         showToast('Processo excluído.');
       }
     };
@@ -557,6 +590,8 @@ function wireEtapaForm(prefix, render){
         const newE = etapaRowToLocal(row);
         c.etapas.push(newE);
         if(statusVal === 'concluido') await api.completeUpToDb(c, newE.id);
+        const fase = faseDaEtapa(c, newE);
+        if(fase) state.fasesAbertas[`${c.id}:${fase.key}`] = true; // a nova etapa fica visível
         state.showEtapaFormFor = null;
         showToast('Etapa adicionada com sucesso!');
       }
