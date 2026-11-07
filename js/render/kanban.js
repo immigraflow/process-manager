@@ -19,11 +19,11 @@ export function renderKanbanView(){
 
   return `
     <div class="kanban-filters">
-      <div class="search-field" style="max-width:280px;">
+      <div class="search-field">
         <i class="pi pi-search"></i>
         <input type="text" id="kanban-search-input" placeholder="Buscar processo pelo nome..." value="${escapeHtml(state.kanbanSearchQuery)}">
       </div>
-      <select id="kanban-status-filter" class="status-select" style="border-radius:var(--radius);">
+      <select id="kanban-status-filter" class="kanban-status-filter" aria-label="Filtrar por status">
         <option value="todos" ${state.kanbanStatusFilter==='todos'?'selected':''}>Todos os status</option>
         ${KANBAN_COLUMNS.map(col => `<option value="${col.key}" ${state.kanbanStatusFilter===col.key?'selected':''}>${col.label}</option>`).join('')}
       </select>

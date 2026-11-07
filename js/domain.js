@@ -129,18 +129,14 @@ export function faseDaEtapa(c, e){
 }
 
 /**
- * Ordena os processos por importância decrescente (mesmo critério da aba Prioridades):
- * 1º em andamento com prazo, do mais próximo/vencido ao mais distante; 2º em andamento sem prazo;
- * 3º concluídos (ou finalizados via NVC). Empates mantêm a ordem original.
+ * Ordena os processos pela data de cadastro, do mais antigo para o mais recente (ordem da lista lateral).
+ * Processos sem data vão para o fim; empates mantêm a ordem original.
  */
-export function rankCasesByImportance(cases){
-  const info = cases.map((c, i) => {
-    const encerrado = caseFullyDone(c) || c.nvcAosChoice === 'nvc';
-    const nearest = encerrado ? null : nearestDeadline(c);
-    return { c, i, grupo: encerrado ? 2 : (nearest ? 0 : 1), date: nearest ? nearest.date : '' };
-  });
-  info.sort((a, b) => a.grupo - b.grupo || a.date.localeCompare(b.date) || a.i - b.i);
-  return info.map(x => x.c);
+export function orderCasesByDate(cases){
+  return cases
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => (a.c.createdAt || '9999').localeCompare(b.c.createdAt || '9999') || a.i - b.i)
+    .map(x => x.c);
 }
 
 export function nearestDeadline(c){

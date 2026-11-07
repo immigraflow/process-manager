@@ -22,7 +22,7 @@ ImmigraFlow ("Gestor de Processos"): app web para escritórios de imigração ac
 | `app.js` | Ponto de entrada: shell da página, abas (`TABS`), modais, `render()` |
 | `state.js` | Estado global em memória (`state`) e helpers (`getCase`, `findI140Marco`, `findStatusMarco`) |
 | `constants.js` | Status, `MARCO_DEFS`, templates (`DEFAULT_TEMPLATE`, `AOS_TEMPLATE`, `RECURSO_STEPS`), colunas do Kanban |
-| `domain.js` | Regras puras: etapa concluída, urgência, categoria do Kanban, prazo mais próximo, `computeResultados`, `agruparPorFase`/`faseDaEtapa` (fases da linha do tempo), `prazoInfo` (selo de prazo) e `rankCasesByImportance` (ordem da lista lateral) |
+| `domain.js` | Regras puras: etapa concluída, urgência, categoria do Kanban, prazo mais próximo, `computeResultados`, `agruparPorFase`/`faseDaEtapa` (fases da linha do tempo), `prazoInfo` (selo de prazo) e `orderCasesByDate` (ordem da lista lateral) |
 | `dashboard.js` | Cálculos puros da aba Início (indicadores e gráficos), reaproveitando `domain.js` |
 | `mappers.js` | Linha do Supabase (snake_case) ⇄ modelo local (camelCase) |
 | `api.js` | **Único** lugar que chama `sb.from(...)`. Todo CRUD passa por aqui |
@@ -30,7 +30,7 @@ ImmigraFlow ("Gestor de Processos"): app web para escritórios de imigração ac
 | `events.js` | Liga os elementos renderizados às ações e re-renderiza |
 | `render/*.js` | Uma função `render...View()` por aba, devolvendo string HTML |
 
-Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Resultados, Priority Date, Lembretes.
+Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Resultados, Data de prioridade, Lembretes.
 
 ## Padrões que precisam ser respeitados
 
@@ -54,7 +54,7 @@ Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Result
 
 ## Aba Processos: lista lateral e linha do tempo (IMF-002)
 
-- **Lista lateral:** ordenada por importância (`rankCasesByImportance`, mesmo critério da aba Prioridades): em andamento com prazo, do mais próximo/vencido ao mais distante; depois em andamento sem prazo; por último concluídos/NVC. Mostra só `CASE_LIST_LIMIT` (10) itens; o botão "VER MAIS" (`state.casesExpanded`) mostra o resto e vira "VER MENOS". Ícones `pi-plus-circle` / `pi-minus-circle` (PrimeIcons já vem por CDN; PrimeNG não é usado, o projeto não tem Angular). Se o processo selecionado cair fora dos 10 (criado agora, atalho do Início), `revealSelectedCase` (em `events.js`) abre a lista inteira.
+- **Lista lateral:** ordenada pela data de cadastro (`orderCasesByDate`, campo `createdAt` vindo de `cases.created_at`), do mais antigo para o mais recente. Mostra só `CASE_LIST_LIMIT` (10) itens; o botão "VER MAIS" (`state.casesExpanded`) mostra o resto e vira "VER MENOS". Ícones `pi-plus-circle` / `pi-minus-circle` (PrimeIcons já vem por CDN; PrimeNG não é usado, o projeto não tem Angular). Se o processo selecionado cair fora dos 10 (criado agora, atalho do Início), `revealSelectedCase` (em `events.js`) abre a lista inteira.
 - **Linha do tempo:** resumo (etapa atual, fase, prazo, barra de progresso) + fases em acordeão (PWD, Recrutamento e ETA 9089, I-140), delimitadas pela posição dos marcos PWD e ETA 9089 (`agruparPorFase`; sem esses marcos vira uma fase única "Etapas"). Abre por padrão a fase da etapa atual; `state.fasesAbertas` guarda o que o usuário abriu/fechou e `state.expandedEtapaId` a etapa não atual aberta. A etapa atual vem sempre aberta, com a tag AGORA e os controles de sempre (status, editar, excluir). As etapas de AOS usam as mesmas linhas, sem acordeão.
 
 ## Tipos de visto (IMF-001)

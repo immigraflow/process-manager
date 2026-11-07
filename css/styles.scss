@@ -568,7 +568,20 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   input:focus{ outline: none; border-color: var(--accent); }
 }
 
-.kanban-filters{ display: flex; gap: 12px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+// Filtros do Acompanhamento: busca ocupa 3 de 4 colunas e o status, 1; ambos com a mesma altura
+.kanban-filters{
+  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: stretch; margin-bottom: 18px;
+  .search-field{ grid-column: span 3; margin-bottom: 0; }
+  .search-field input, .kanban-status-filter{ height: 40px; box-sizing: border-box; }
+}
+.kanban-status-filter{
+  width: 100%; padding: 0 10px; border: 1px solid var(--line); border-radius: var(--radius);
+  font-family: var(--font-body); font-size: 13px; background: #fff; color: var(--ink); cursor: pointer;
+  &:focus{ outline: none; border-color: var(--accent); }
+}
+@media (max-width: 700px){
+  .kanban-filters{ grid-template-columns: 1fr; .search-field{ grid-column: auto; } }
+}
 
 // ============================================================
 // DRAG AND DROP: etapas padrão

@@ -24,6 +24,16 @@ export function renderLembretesView(){
 
   return `
     <div class="lembrete-section">
+      <h3>Cobranças pendentes</h3>
+      ${cobrancas.length === 0 ? '<div class="kanban-empty">Nada vencido no momento.</div>' :
+        cobrancas.map(cb => `
+          <div class="lembrete-row overdue">
+            <div><div class="lr-caso">${escapeHtml(cb.c.nome)}</div><div class="lr-nome">Cobrar responsável: ${escapeHtml(cb.titulo)}</div></div>
+            <span class="stamp vencido">Vencido há ${cb.dias}d</span>
+          </div>
+        `).join('')}
+    </div>
+    <div class="lembrete-section" style="margin-top:12px;">
       <h3>Lembretes recorrentes por dia da semana</h3>
       ${recorrentes.length === 0 ? '<div class="kanban-empty">Nenhuma etapa com revisão periódica no momento.</div>' :
         WEEKDAYS.map(w => {
@@ -42,16 +52,6 @@ export function renderLembretesView(){
           `;
         }).join('')
       }
-    </div>
-    <div class="lembrete-section" style="margin-top:12px;">
-      <h3>Cobranças pendentes</h3>
-      ${cobrancas.length === 0 ? '<div class="kanban-empty">Nada vencido no momento.</div>' :
-        cobrancas.map(cb => `
-          <div class="lembrete-row overdue">
-            <div><div class="lr-caso">${escapeHtml(cb.c.nome)}</div><div class="lr-nome">Cobrar responsável: ${escapeHtml(cb.titulo)}</div></div>
-            <span class="stamp vencido">Vencido há ${cb.dias}d</span>
-          </div>
-        `).join('')}
     </div>
   `;
 }

@@ -47,6 +47,7 @@ export async function dbFetchAll(orgId){
     id: c.id, nome: c.nome, numero: c.numero || '', cliente: c.cliente || '',
     nvcAosChoice: c.nvc_aos_choice,
     tipoVisto: c.tipo_visto || DEFAULT_VISA_TIPO,
+    createdAt: c.created_at || '',
     etapas: etapaRows.filter(e => e.case_id === c.id).map(etapaRowToLocal)
   }));
 
