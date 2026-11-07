@@ -14,6 +14,8 @@ export const state = {
 
   selectedCaseId: null,
   showNewCaseForm: false,
+  newCaseTipo: '', // tipo de visto escolhido no modal "Novo processo"
+  newCaseDraft: null, // { nome, numero, cliente } preservado quando o select re-renderiza o modal
   editingCaseId: null,
   showEtapaFormFor: null,
   editingEtapaId: null,

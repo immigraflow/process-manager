@@ -5,7 +5,7 @@ import { escapeHtml, fmtDate, todayISO } from './utils.js';
 import { attachEvents, attachLoginEvents } from './events.js';
 import { renderLogin } from './render/login.js';
 import { renderInicioView } from './render/inicio.js';
-import { renderProcessosView } from './render/processos.js';
+import { renderProcessosView, renderNewCaseModal } from './render/processos.js';
 import { renderKanbanView } from './render/kanban.js';
 import { renderPrioridadesView } from './render/prioridades.js';
 import { renderResultadosView } from './render/resultados.js';
@@ -107,6 +107,7 @@ function render(){
       ${state.currentView === 'prioritydate' ? renderPriorityDateView() : ''}
       ${state.currentView === 'lembretes' ? renderLembretesView() : ''}
     </div>
+    ${renderNewCaseModal()}
     ${renderChangePasswordModal()}
     ${renderConfirmModal()}
     ${renderFooter()}

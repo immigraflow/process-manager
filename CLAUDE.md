@@ -13,7 +13,7 @@ ImmigraFlow ("Gestor de Processos"): app web para escritórios de imigração ac
 - Para rodar localmente, sirva a pasta por HTTP (módulos ES não funcionam em `file://`):
   `python3 -m http.server 8000` e abra `http://localhost:8000`.
 - `js/config.js` tem a URL e a chave `anon` do Supabase (pública por desenho; a segurança depende do RLS no banco).
-- O schema SQL/RLS **não está versionado aqui**. Tabelas usadas: `organizations`, `organization_members`, `cases`, `etapas`, `templates`, `eventos` (colunas em `js/api.js` e `js/mappers.js`).
+- O schema SQL/RLS **não está versionado aqui**; só as migrações pontuais em `db/migrations/` (aplicar manualmente no Supabase). Tabelas usadas: `organizations`, `organization_members`, `cases`, `etapas`, `templates`, `eventos` (colunas em `js/api.js` e `js/mappers.js`).
 
 ## Arquitetura (js/)
 
@@ -42,7 +42,7 @@ Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Result
 
 ## Modelo de dados e regras de negócio
 
-- `case` = `{ id, nome, numero, cliente, nvcAosChoice, etapas[] }`. A ordem das etapas vem da coluna `ordem`.
+- `case` = `{ id, nome, numero, cliente, nvcAosChoice, tipoVisto, etapas[] }`. A ordem das etapas vem da coluna `ordem`.
 - **Etapa:** `tipo` `'normal'` ou `'marco'`. Status de etapa normal: `nao_iniciado`, `confeccao`, `revisao`, `pendencia`, `concluido`. Status de marco: depende de `MARCO_DEFS[marcoTipo]` (`pwd`, `eta9089`, `i140`, `status`, `recurso_decisao`); o marco conta como concluído conforme `doneKey`/`doneKeys`.
 - `colecao`: `'padrao'` (fluxo principal) ou `'aos'`. **As etapas de AOS e todas as rodadas de recurso compartilham `'aos'`** e são anexadas ao fim da lista.
 - **Etapa atual** = primeira etapa não concluída na ordem do array (`currentEtapa`). Kanban, Prioridades e Início partem dela.
@@ -51,6 +51,17 @@ Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Result
 - **Recursos (L3):** decisão `negado`/`rfe`/`rejeitado` + `recursoTipo` diferente de `recursoAplicadoPara` gera 8 etapas + um novo marco "O recurso foi aceito?", que pode repetir o ciclo.
 - **NVC/AOS:** aparece quando o marco STATUS está `sim`. Escolher AOS cria as 10 etapas de `AOS_TEMPLATE` uma única vez; NVC encerra a atuação.
 - **Urgência:** vencido (prazo < hoje), próximo (até 7 dias), em dia. Validade de marco concluído entra no ranking quando faltam até 122 dias.
+
+## Tipos de visto (IMF-001)
+
+- `cases.tipo_visto` guarda a chave do tipo (`eb1`, `eb2nw`, `eb3`, `l1`, `o1`, `casamento`, `parentesco`, `vawa`, `asilo`). Processos antigos (sem valor) contam como `eb3`.
+- `VISA_GROUPS` (em `constants.js`) alimenta o select agrupado do modal **Novo processo**. `VISA_TIPOS_COM_FLUXO` lista os tipos com fluxo implementado (hoje só `eb3`); os demais são criados sem etapas e a aba Processos mostra "Fluxo a ser implementado" no lugar da linha do tempo.
+- Para implementar o fluxo de um novo tipo: criar o template dele, incluir a chave em `VISA_TIPOS_COM_FLUXO` e fazer `events.js` (criação do caso) escolher o template pelo tipo.
+- O fluxo EB-3 continua vindo da tabela `templates` da organização (editável em "Etapas padrão").
+
+## Convenção de branches
+
+`feature/#IMF-NNN`, com número sequencial a cada alteração (`feature/#IMF-001`, `feature/#IMF-002`...). No shell, use aspas: `git checkout -b 'feature/#IMF-002'`.
 
 ## Armadilhas conhecidas
 

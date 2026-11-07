@@ -1382,6 +1382,55 @@ body {
   border-style: solid;
 }
 
+.modal-card--wide {
+  max-width: 520px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.modal-card--wide .form-card {
+  margin-bottom: 0;
+}
+
+.modal-card--wide select {
+  width: 100%;
+}
+
+.flow-pending {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+.flow-pending .pi {
+  color: var(--warning);
+}
+.flow-pending--compact {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+}
+
+.tag--visa {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: var(--accent);
+  background: var(--accent-soft);
+  padding: 2px 6px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
 .search-field {
   position: relative;
   margin-bottom: 14px;

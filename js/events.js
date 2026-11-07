@@ -3,7 +3,7 @@ import { state, getCase } from './state.js';
 import { doLogout, doLogin, doForgotPassword, doChangePassword } from './auth.js';
 import * as api from './api.js';
 import { etapaPayloadFromTemplateItem, etapaRowToLocal } from './mappers.js';
-import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO } from './constants.js';
+import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO, visaTemFluxo } from './constants.js';
 import { todayISO } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -149,9 +149,24 @@ export function attachEvents(render){
   }
 
   const btnNewCase = document.getElementById('btn-new-case');
-  if(btnNewCase) btnNewCase.onclick = () => { state.editingCaseId = null; state.showNewCaseForm = !state.showNewCaseForm; render(); };
+  if(btnNewCase) btnNewCase.onclick = () => {
+    state.editingCaseId = null; state.showTemplateManager = false;
+    state.newCaseTipo = ''; state.newCaseDraft = null;
+    state.showNewCaseForm = true; render();
+  };
+  // Trocar o tipo de visto re-renderiza o modal; guardamos o que já foi digitado antes disso
+  const ncTipo = document.getElementById('nc-tipo');
+  if(ncTipo) ncTipo.onchange = () => {
+    state.newCaseDraft = {
+      nome: document.getElementById('nc-nome').value,
+      numero: document.getElementById('nc-numero').value,
+      cliente: document.getElementById('nc-cliente').value
+    };
+    state.newCaseTipo = ncTipo.value;
+    render();
+  };
   const ncCancel = document.getElementById('nc-cancel');
-  if(ncCancel) ncCancel.onclick = () => { state.showNewCaseForm = false; state.editingCaseId = null; render(); };
+  if(ncCancel) ncCancel.onclick = () => { state.showNewCaseForm = false; state.editingCaseId = null; state.newCaseTipo = ''; state.newCaseDraft = null; render(); };
   const ncSave = document.getElementById('nc-save');
   if(ncSave) ncSave.onclick = () => {
     const nome = document.getElementById('nc-nome').value.trim();
@@ -159,6 +174,11 @@ export function attachEvents(render){
     const cliente = document.getElementById('nc-cliente').value.trim();
     if(!nome){ document.getElementById('nc-error').style.display = 'block'; return; }
     const editCaseId = ncSave.getAttribute('data-case');
+    // Lido antes do withBusy: ele chama render() e refaz o DOM
+    const tipoVisto = editCaseId ? null : document.getElementById('nc-tipo').value;
+    if(!editCaseId && !tipoVisto){ document.getElementById('nc-tipo-error').style.display = 'block'; return; }
+    // O withBusy re-renderiza o modal; guardar o rascunho evita que os campos fiquem em branco se der erro
+    if(!editCaseId){ state.newCaseDraft = { nome, numero, cliente }; state.newCaseTipo = tipoVisto; }
     withBusy(render, async () => {
       if(editCaseId){
         await api.dbUpdateCase(editCaseId, { nome, numero: numero || null, cliente: cliente || null });
@@ -167,19 +187,24 @@ export function attachEvents(render){
         state.editingCaseId = null;
         showToast('Processo atualizado com sucesso!');
       } else {
-        const row = await api.dbInsertCase(state.orgId, nome, numero, cliente);
-        // 1 única requisição para inserir todas as etapas padrão de uma vez
-        const payloads = state.data.template.map((t, i) => {
-          const p = etapaPayloadFromTemplateItem(t, i);
-          p.case_id = row.id;
-          return p;
-        });
-        const etapaRows = await api.dbInsertEtapasBulk(payloads);
-        etapaRows.sort((a,b) => a.ordem - b.ordem);
-        const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, etapas: etapaRows.map(etapaRowToLocal) };
+        const row = await api.dbInsertCase(state.orgId, nome, numero, cliente, tipoVisto);
+        // Só tipos com fluxo implementado recebem as etapas padrão; os demais nascem sem etapas
+        let etapaRows = [];
+        if(visaTemFluxo(tipoVisto)){
+          // 1 única requisição para inserir todas as etapas padrão de uma vez
+          const payloads = state.data.template.map((t, i) => {
+            const p = etapaPayloadFromTemplateItem(t, i);
+            p.case_id = row.id;
+            return p;
+          });
+          etapaRows = await api.dbInsertEtapasBulk(payloads);
+          etapaRows.sort((a,b) => a.ordem - b.ordem);
+        }
+        const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, tipoVisto: row.tipo_visto || tipoVisto, etapas: etapaRows.map(etapaRowToLocal) };
         state.data.cases.unshift(newCase);
         state.selectedCaseId = newCase.id;
         state.showNewCaseForm = false;
+        state.newCaseTipo = ''; state.newCaseDraft = null;
         showToast('Processo incluído com sucesso!');
       }
     });
