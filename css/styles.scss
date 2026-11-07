@@ -183,34 +183,6 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
 // ============================================================
 // TIMELINE / ETAPAS
 // ============================================================
-.timeline{ display: flex; flex-direction: column; }
-
-.etapa{
-  position: relative; padding: 0 0 20px 26px; border-left: 2px solid var(--line);
-  &:last-child{ border-left-color: transparent; padding-bottom: 4px; }
-  &::before{ content: ''; position: absolute; left: -7px; top: 3px; width: 12px; height: 12px; border-radius: 50%; background: var(--surface); border: 2.5px solid var(--ink-faint); }
-
-  &.st-nao_iniciado::before{ background: var(--surface); border-color: var(--gray-badge); }
-  &.st-confeccao::before{ background: var(--warning); border-color: var(--warning); }
-  &.st-revisao::before{ background: var(--purple); border-color: var(--purple); }
-  &.st-pendencia::before{ background: var(--urgent); border-color: var(--urgent); }
-  &.st-concluido::before{ background: var(--done); border-color: var(--done); }
-  &.st-concluido .etapa-titulo{ text-decoration: line-through; color: var(--ink-soft); }
-
-  &.marco::before{ width: 15px; height: 15px; left: -8.5px; border-radius: 3px; transform: rotate(45deg); border-width: 3px; }
-  &.marco-pwd::before{ background: var(--marco-pwd); border-color: var(--marco-pwd); }
-  &.marco-eta9089::before{ background: var(--marco-eta9089); border-color: var(--marco-eta9089); }
-  &.marco-i140::before{ background: var(--marco-i140); border-color: var(--marco-i140); }
-  &.marco-status-pendente::before{ background: var(--warning); border-color: var(--warning); }
-  &.marco-status-sim::before{ background: var(--done); border-color: var(--done); }
-  &.marco-status-nao::before{ background: var(--urgent); border-color: var(--urgent); }
-  &.marco-status-analise::before{ background: var(--gray-badge); border-color: var(--gray-badge); }
-  &.marco-status-aprovado::before{ background: var(--done); border-color: var(--done); }
-  &.marco-status-negado::before{ background: var(--urgent); border-color: var(--urgent); }
-  &.marco-status-rfe::before{ background: var(--warning); border-color: var(--warning); }
-  &.marco-status-rejeitado::before{ background: var(--urgent); border-color: var(--urgent); }
-}
-
 .status-select{
   font-family: var(--font-body); font-size: 12.5px; font-weight: 500; padding: 5px 8px;
   border-radius: 20px; border: 1.5px solid var(--line); background: var(--surface-soft); color: var(--ink); cursor: pointer;
@@ -235,6 +207,99 @@ body { background: var(--bg); color: var(--ink); font-family: var(--font-body); 
   &.danger:hover{ color: var(--urgent); }
 }
 .empty-etapas{ font-size: 13px; color: var(--ink-faint); padding: 10px 0 20px; }
+
+/* ---- Linha do tempo em fases (IMF-002) ---- */
+.tone-neutral { --c: var(--gray-badge); }
+.tone-warn { --c: var(--warning); }
+.tone-purple { --c: var(--purple); }
+.tone-bad { --c: var(--urgent); }
+.tone-ok { --c: var(--done); }
+.cor-pwd { --c: var(--marco-pwd); }
+.cor-eta9089 { --c: var(--marco-eta9089); }
+.cor-i140 { --c: var(--marco-i140); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px;
+  font-size: 12px; font-weight: 500; white-space: nowrap;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, var(--surface));
+}
+.chip--marco { margin-right: 6px; font-size: 11px; padding: 1px 8px; }
+.tick { color: var(--done); font-weight: 700; }
+
+.resumo { margin: 0 0 22px; display: grid; gap: 8px; }
+.resumo__linha { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 14px; }
+.resumo__fase { color: var(--ink-soft); }
+.resumo__hint { font-family: var(--font-mono); font-size: 11.5px; color: var(--ink-soft); }
+.prog { height: 8px; background: var(--surface-soft); border-radius: 99px; overflow: hidden; border: 1px solid var(--line); }
+.prog i { display: block; height: 100%; background: var(--accent); }
+
+.fase-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+.small-btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; font-size: 12px; font-weight: 500;
+  font-family: var(--font-body); background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+}
+.small-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.fase { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); margin-top: 10px; overflow: hidden; }
+.fase__head {
+  width: 100%; display: grid; grid-template-columns: auto 1fr auto auto; gap: 12px; align-items: center;
+  background: none; border: 0; padding: 12px 14px; text-align: left; cursor: pointer; color: inherit; font: inherit;
+}
+.fase__head:hover { background: var(--surface-soft); }
+.fase__nome { font-family: var(--font-display); font-weight: 600; font-size: 16px; }
+.fase__cnt { font-size: 12.5px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.fase__mini { width: 90px; height: 6px; background: var(--surface-soft); border: 1px solid var(--line); border-radius: 99px; overflow: hidden; }
+.fase__mini i { display: block; height: 100%; background: var(--accent); }
+.fase__chev { color: var(--ink-soft); font-size: 12px; transition: transform 0.15s; }
+.fase.open .fase__chev { transform: rotate(90deg); }
+.fase.done { border-color: color-mix(in srgb, var(--done) 45%, var(--line)); }
+.fase.done .fase__mini i { background: var(--done); }
+.fase.future .fase__nome { color: var(--ink-soft); }
+.fase__body { padding: 4px 14px 14px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 4px; }
+.fase--fixa { margin-top: 0; }
+.fase__body--solta { border-top: 0; padding-top: 10px; }
+
+.etapa-row {
+  display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; width: 100%;
+  background: none; border: 0; border-radius: var(--radius); padding: 7px 6px; text-align: left;
+  cursor: pointer; color: inherit; font: inherit; font-size: 14px;
+}
+.etapa-row:hover { background: var(--surface-soft); }
+.etapa-row__tt { min-width: 0; overflow-wrap: anywhere; }
+.etapa-row.isdone .etapa-row__tt { text-decoration: line-through; color: var(--ink-soft); }
+.etapa-row__rt { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+.dot {
+  width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center; flex: none;
+  font-size: 12px; font-weight: 700; color: var(--c);
+  background: color-mix(in srgb, var(--c) 16%, var(--surface)); border: 1.5px solid var(--c);
+}
+.dot--marco { width: 16px; height: 16px; margin: 4px; border: 0; border-radius: 3px; transform: rotate(45deg); background: var(--c); font-size: 0; }
+
+.etapa-detail { margin: 2px 0 8px; }
+.etapa-detail--agora { border-left: 4px solid var(--accent); padding-left: 10px; }
+.etapa-detail .form-card { margin-bottom: 0; }
+.agora-tag {
+  display: inline-block; margin-bottom: 6px; padding: 2px 8px; border-radius: 4px;
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500; letter-spacing: 0.08em;
+  background: var(--accent); color: #fff;
+}
+
+.list-toggle {
+  width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 14px;
+  background: none; border: 1px dashed var(--line); border-radius: var(--radius); cursor: pointer;
+  font-family: var(--font-mono); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; color: var(--ink-soft);
+}
+.list-toggle:hover { border-color: var(--accent); color: var(--accent); }
+.list-toggle .pi { font-size: 14px; }
+
+@media (max-width: 700px) {
+  .fase__head { grid-template-columns: auto 1fr auto; }
+  .fase__mini { display: none; }
+  .etapa-row { grid-template-columns: auto 1fr; }
+  .etapa-row__rt { grid-column: 2; justify-content: flex-start; }
+}
 
 .marco-card{
   border-width: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);

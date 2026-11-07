@@ -22,7 +22,7 @@ ImmigraFlow ("Gestor de Processos"): app web para escritórios de imigração ac
 | `app.js` | Ponto de entrada: shell da página, abas (`TABS`), modais, `render()` |
 | `state.js` | Estado global em memória (`state`) e helpers (`getCase`, `findI140Marco`, `findStatusMarco`) |
 | `constants.js` | Status, `MARCO_DEFS`, templates (`DEFAULT_TEMPLATE`, `AOS_TEMPLATE`, `RECURSO_STEPS`), colunas do Kanban |
-| `domain.js` | Regras puras: etapa concluída, urgência, categoria do Kanban, prazo mais próximo, `computeResultados` |
+| `domain.js` | Regras puras: etapa concluída, urgência, categoria do Kanban, prazo mais próximo, `computeResultados`, `agruparPorFase`/`faseDaEtapa` (fases da linha do tempo), `prazoInfo` (selo de prazo) e `rankCasesByImportance` (ordem da lista lateral) |
 | `dashboard.js` | Cálculos puros da aba Início (indicadores e gráficos), reaproveitando `domain.js` |
 | `mappers.js` | Linha do Supabase (snake_case) ⇄ modelo local (camelCase) |
 | `api.js` | **Único** lugar que chama `sb.from(...)`. Todo CRUD passa por aqui |
@@ -51,6 +51,11 @@ Abas: Início, Processos, Acompanhamento dos casos (Kanban), Prioridades, Result
 - **Recursos (L3):** decisão `negado`/`rfe`/`rejeitado` + `recursoTipo` diferente de `recursoAplicadoPara` gera 8 etapas + um novo marco "O recurso foi aceito?", que pode repetir o ciclo.
 - **NVC/AOS:** aparece quando o marco STATUS está `sim`. Escolher AOS cria as 10 etapas de `AOS_TEMPLATE` uma única vez; NVC encerra a atuação.
 - **Urgência:** vencido (prazo < hoje), próximo (até 7 dias), em dia. Validade de marco concluído entra no ranking quando faltam até 122 dias.
+
+## Aba Processos: lista lateral e linha do tempo (IMF-002)
+
+- **Lista lateral:** ordenada por importância (`rankCasesByImportance`, mesmo critério da aba Prioridades): em andamento com prazo, do mais próximo/vencido ao mais distante; depois em andamento sem prazo; por último concluídos/NVC. Mostra só `CASE_LIST_LIMIT` (10) itens; o botão "VER MAIS" (`state.casesExpanded`) mostra o resto e vira "VER MENOS". Ícones `pi-plus-circle` / `pi-minus-circle` (PrimeIcons já vem por CDN; PrimeNG não é usado, o projeto não tem Angular). Se o processo selecionado cair fora dos 10 (criado agora, atalho do Início), `revealSelectedCase` (em `events.js`) abre a lista inteira.
+- **Linha do tempo:** resumo (etapa atual, fase, prazo, barra de progresso) + fases em acordeão (PWD, Recrutamento e ETA 9089, I-140), delimitadas pela posição dos marcos PWD e ETA 9089 (`agruparPorFase`; sem esses marcos vira uma fase única "Etapas"). Abre por padrão a fase da etapa atual; `state.fasesAbertas` guarda o que o usuário abriu/fechou e `state.expandedEtapaId` a etapa não atual aberta. A etapa atual vem sempre aberta, com a tag AGORA e os controles de sempre (status, editar, excluir). As etapas de AOS usam as mesmas linhas, sem acordeão.
 
 ## Tipos de visto (IMF-001)
 

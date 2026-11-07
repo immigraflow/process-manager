@@ -1,6 +1,7 @@
 import { state, getCase, findStatusMarco } from '../state.js';
-import { MARCO_DEFS, STATUS_OPTIONS, RECURSO_TIPOS, RECURSO_STATUS_GATILHO, VISA_GROUPS, DEFAULT_VISA_TIPO, visaLabel, visaTemFluxo } from '../constants.js';
-import { isEtapaDone, caseFullyDone, caseOverallStatus, deadlineStatus, deadlineLabel } from '../domain.js';
+import { MARCO_DEFS, STATUS_OPTIONS, STATUS_ICONS, STATUS_TONES, MARCO_TONES, RECURSO_TIPOS, RECURSO_STATUS_GATILHO, VISA_GROUPS, DEFAULT_VISA_TIPO, CASE_LIST_LIMIT, visaLabel, visaTemFluxo } from '../constants.js';
+import { isEtapaDone, caseFullyDone, caseOverallStatus, currentEtapa, prazoInfo, agruparPorFase, faseDaEtapa, rankCasesByImportance } from '../domain.js';
+import { isConcluido } from '../dashboard.js';
 import { escapeHtml, fmtDate, todayISO } from '../utils.js';
 
 export function renderProcessosView(){
@@ -30,7 +31,9 @@ export function renderProcessosView(){
 
 function renderCaseListItems(){
   const query = state.caseSearchQuery.trim().toLowerCase();
-  const filtered = query ? state.data.cases.filter(c => c.nome.toLowerCase().includes(query)) : state.data.cases;
+  // Ordem de importância decrescente (mesmo critério da aba Prioridades)
+  const ranked = rankCasesByImportance(state.data.cases);
+  const filtered = query ? ranked.filter(c => c.nome.toLowerCase().includes(query)) : ranked;
 
   if(state.data.cases.length === 0){
     return '<div class="empty-sidebar">Nenhum processo cadastrado ainda. Clique em "Novo processo" para começar.</div>';
@@ -38,7 +41,12 @@ function renderCaseListItems(){
   if(filtered.length === 0){
     return `<div class="empty-sidebar">Nenhum processo encontrado para "${escapeHtml(state.caseSearchQuery)}".</div>`;
   }
-  return filtered.map(c => renderCaseCard(c)).join('');
+  const temMais = filtered.length > CASE_LIST_LIMIT;
+  const visiveis = (temMais && !state.casesExpanded) ? filtered.slice(0, CASE_LIST_LIMIT) : filtered;
+  const toggle = !temMais ? '' : (state.casesExpanded
+    ? '<button type="button" class="list-toggle" id="btn-cases-toggle">VER MENOS <i class="pi pi-minus-circle" aria-hidden="true"></i></button>'
+    : '<button type="button" class="list-toggle" id="btn-cases-toggle">VER MAIS <i class="pi pi-plus-circle" aria-hidden="true"></i></button>');
+  return visiveis.map(c => renderCaseCard(c)).join('') + toggle;
 }
 
 function renderEmptyState(){
@@ -142,8 +150,10 @@ function renderCaseCard(c){
 
 export function renderCaseDetail(c){
   if(!visaTemFluxo(c.tipoVisto || DEFAULT_VISA_TIPO)) return renderCaseDetailSemFluxo(c);
-  const sortedEtapas = c.etapas.filter(e => e.colecao !== 'aos');
+  const principais = c.etapas.filter(e => e.colecao !== 'aos');
   const aosEtapas = c.etapas.filter(e => e.colecao === 'aos');
+  const cur = currentEtapa(c);
+  const fases = agruparPorFase(principais);
   const done = caseFullyDone(c);
   return `
     <div class="case-header">
@@ -154,9 +164,14 @@ export function renderCaseDetail(c){
       </div>
       <div class="actions"><button class="icon-btn danger" id="btn-delete-case" title="Excluir processo"><i class="pi pi-times-circle"></i></button></div>
     </div>
-    <div class="section-label">Linha do tempo (${sortedEtapas.length})</div>
-    ${sortedEtapas.length === 0 ? '<div class="empty-etapas">Nenhuma etapa cadastrada. Adicione a primeira etapa abaixo.</div>' : ''}
-    <div class="timeline">${sortedEtapas.map(e => renderEtapa(c, e)).join('')}</div>
+    ${renderResumoCaso(c, cur)}
+    <div class="section-label">Linha do tempo (${principais.length})</div>
+    ${principais.length === 0 ? '<div class="empty-etapas">Nenhuma etapa cadastrada. Adicione a primeira etapa abaixo.</div>' : `
+      <div class="fase-actions">
+        <button type="button" class="small-btn" data-fases-all="open" data-case="${c.id}"><i class="pi pi-angle-double-down" aria-hidden="true"></i> Expandir tudo</button>
+        <button type="button" class="small-btn" data-fases-all="close" data-case="${c.id}"><i class="pi pi-angle-double-up" aria-hidden="true"></i> Recolher tudo</button>
+      </div>`}
+    ${fases.map(f => renderFase(c, f, cur)).join('')}
     ${state.showEtapaFormFor === c.id ? renderEtapaForm(c, null) : `<button class="add-etapa-toggle" id="btn-add-etapa"><i class="pi pi-plus-circle"></i>Adicionar etapa</button>`}
     ${state.data.template.length > 0 ? `<button class="apply-template-btn" id="btn-apply-template" data-case="${c.id}"><i class="pi pi-refresh"></i>Aplicar etapas padrão a este processo</button>` : ''}
     ${renderNvcAosBlock(c, aosEtapas)}
@@ -179,10 +194,57 @@ function renderCaseDetailSemFluxo(c){
   `;
 }
 
+/** Resumo do caso: etapa atual, fase, selo de prazo e barra de progresso geral */
+function renderResumoCaso(c, cur){
+  const total = c.etapas.length;
+  if(total === 0) return '';
+  const feitas = c.etapas.filter(isEtapaDone).length;
+  const pct = Math.round(feitas / total * 100);
+  let linha;
+  if(c.nvcAosChoice === 'nvc'){
+    linha = '<span class="chip tone-ok">✓ Atuação finalizada (via NVC)</span>';
+  } else if(!cur){
+    linha = '<span class="chip tone-ok">✓ Processo concluído</span>';
+  } else {
+    const fase = faseDaEtapa(c, cur);
+    const prazo = prazoInfo(cur);
+    linha = `<b>Etapa atual:</b> <span>${escapeHtml(cur.titulo)}</span>${fase ? `<span class="resumo__fase">· Fase ${escapeHtml(fase.nome)}</span>` : ''}${prazo ? `<span class="stamp ${prazo.status}">${prazo.label}</span>` : ''}`;
+  }
+  return `
+    <div class="resumo">
+      <div class="resumo__linha">${linha}</div>
+      <div class="prog" role="progressbar" aria-valuenow="${feitas}" aria-valuemin="0" aria-valuemax="${total}" aria-label="Progresso geral"><i style="width:${pct}%"></i></div>
+      <div class="resumo__hint">${feitas} de ${total} etapas concluídas</div>
+    </div>
+  `;
+}
+
+/** Fase do fluxo (PWD, Recrutamento e ETA 9089, I-140) como acordeão. Abre por padrão a que contém a etapa atual. */
+function renderFase(c, fase, cur){
+  const key = `${c.id}:${fase.key}`;
+  const total = fase.etapas.length;
+  const feitas = fase.etapas.filter(isEtapaDone).length;
+  const temAtual = !!cur && fase.etapas.includes(cur);
+  const open = key in state.fasesAbertas ? state.fasesAbertas[key] : temAtual;
+  const cls = feitas === total ? 'done' : temAtual ? '' : 'future';
+  return `
+    <section class="fase ${open ? 'open' : ''} ${cls}">
+      <button type="button" class="fase__head" data-fase-toggle="${key}" aria-expanded="${open}">
+        <i class="pi pi-chevron-right fase__chev" aria-hidden="true"></i>
+        <span class="fase__nome">${escapeHtml(fase.nome)}${feitas === total ? ' <span class="tick">✓</span>' : ''}</span>
+        <span class="fase__cnt">${feitas} de ${total} concluídas</span>
+        <span class="fase__mini"><i style="width:${Math.round(feitas / total * 100)}%"></i></span>
+      </button>
+      ${open ? `<div class="fase__body">${fase.etapas.map(e => renderEtapaRow(c, e, cur)).join('')}</div>` : ''}
+    </section>
+  `;
+}
+
 export function renderNvcAosBlock(c, aosEtapasParam){
   const statusMarco = findStatusMarco(c);
   if(!statusMarco || statusMarco.status !== 'sim') return '';
   const aosEtapas = aosEtapasParam || c.etapas.filter(e => e.colecao === 'aos');
+  const cur = currentEtapa(c);
   return `
     <div class="separator-line"><span>Pós I-140</span></div>
     <div class="nvc-aos-choice">
@@ -191,7 +253,7 @@ export function renderNvcAosBlock(c, aosEtapasParam){
     </div>
     ${c.nvcAosChoice==='aos' ? `
       <div class="section-label">Etapas AOS (${aosEtapas.length})</div>
-      <div class="timeline">${aosEtapas.map(e => renderEtapa(c, e)).join('')}</div>
+      <section class="fase open fase--fixa"><div class="fase__body fase__body--solta">${aosEtapas.map(e => renderEtapaRow(c, e, cur)).join('')}</div></section>
     ` : ''}
     ${c.nvcAosChoice==='nvc' ? `
       <div style="display:flex; align-items:center; gap:12px; padding:16px 18px; border-radius:var(--radius); border:1px solid var(--done); background:var(--done-soft, #e6f7ec);">
@@ -205,40 +267,74 @@ export function renderNvcAosBlock(c, aosEtapasParam){
   `;
 }
 
-export function renderEtapa(c, e){
-  const isEditing = state.editingEtapaId === e.id;
+/** Cor do marco: PWD/ETA/I-140 têm cor própria; STATUS e decisão seguem o tom do status */
+function marcoCor(e){
+  return ['pwd', 'eta9089', 'i140'].includes(e.marcoTipo) ? `cor-${e.marcoTipo}` : `tone-${MARCO_TONES[e.status] || 'neutral'}`;
+}
+
+function renderStatusChip(e){
   if(e.tipo === 'marco'){
-    if(isEditing) return `<div class="etapa marco marco-${e.marcoTipo}${(e.marcoTipo==='status' || e.marcoTipo==='recurso_decisao') ? ' marco-status-'+e.status : ''}">${renderMarcoForm(c, e)}</div>`;
-    return renderMarcoCard(c, e);
+    const def = MARCO_DEFS[e.marcoTipo];
+    const opt = def.statusOptions.find(s => s.key === e.status);
+    const feito = isEtapaDone(e);
+    return `<span class="chip tone-${MARCO_TONES[e.status] || 'neutral'}">${feito ? '✓ ' : ''}${escapeHtml(opt ? opt.label : e.status)}</span>`;
   }
-  if(isEditing) return `<div class="etapa st-${e.status}">${renderEtapaForm(c, e)}</div>`;
+  const opt = STATUS_OPTIONS.find(s => s.key === e.status);
+  return `<span class="chip tone-${STATUS_TONES[e.status] || 'neutral'}">${STATUS_ICONS[e.status] || ''} ${escapeHtml(opt ? opt.label : e.status)}</span>`;
+}
 
-  const prazoStatus = deadlineStatus(e);
-  const prazoLabel = deadlineLabel(e);
-  const showPrazoStamp = !isEtapaDone(e) && prazoLabel;
-
+/**
+ * Uma etapa na linha do tempo: a etapa atual vem sempre aberta (com a tag AGORA);
+ * as demais são uma linha compacta que abre o card completo ao clicar.
+ */
+function renderEtapaRow(c, e, cur){
+  if(e === cur || state.editingEtapaId === e.id) return renderEtapaDetalhe(c, e, e === cur);
+  const expanded = state.expandedEtapaId === e.id;
+  const prazo = prazoInfo(e);
+  const dot = e.tipo === 'marco'
+    ? `<span class="dot dot--marco ${marcoCor(e)}" aria-hidden="true"></span>`
+    : `<span class="dot tone-${STATUS_TONES[e.status] || 'neutral'}" aria-hidden="true">${STATUS_ICONS[e.status] || ''}</span>`;
   return `
-    <div class="etapa st-${e.status}">
-      <div class="etapa-card">
-        <div class="etapa-top">
-          <div style="flex:1;">
-            <div class="etapa-titulo">${escapeHtml(e.titulo)}</div>
-            <div class="etapa-dates">
-              ${e.data ? `<span>Data: ${fmtDate(e.data)}</span>` : ''}
-              ${e.prazo ? `<span>Prazo: ${fmtDate(e.prazo)}</span>` : ''}
-              ${e.reminderDays ? `<span>Lembrete a cada ${e.reminderDays}d</span>` : ''}
-            </div>
-            ${e.obs ? `<div class="etapa-obs">${escapeHtml(e.obs)}</div>` : ''}
+    <button type="button" class="etapa-row ${isEtapaDone(e) ? 'isdone' : ''}" data-etapa-exp="${e.id}" aria-expanded="${expanded}">
+      ${dot}
+      <span class="etapa-row__tt">${e.tipo === 'marco' ? `<span class="chip chip--marco ${marcoCor(e)}">Marco</span>` : ''}${escapeHtml(e.titulo)}</span>
+      <span class="etapa-row__rt">${renderStatusChip(e)}${prazo ? `<span class="stamp ${prazo.status}">${prazo.label}</span>` : ''}</span>
+    </button>
+    ${expanded ? renderEtapaDetalhe(c, e, false) : ''}
+  `;
+}
+
+/** Conteúdo aberto de uma etapa/marco: card com os controles, ou o formulário de edição */
+function renderEtapaDetalhe(c, e, isCur){
+  const editando = state.editingEtapaId === e.id;
+  let inner;
+  if(e.tipo === 'marco') inner = editando ? renderMarcoForm(c, e) : renderMarcoCard(c, e);
+  else inner = editando ? renderEtapaForm(c, e) : renderEtapaCard(c, e);
+  return `<div class="etapa-detail ${isCur ? 'etapa-detail--agora' : ''}">${isCur ? '<span class="agora-tag">AGORA</span>' : ''}${inner}</div>`;
+}
+
+function renderEtapaCard(c, e){
+  const prazo = prazoInfo(e);
+  return `
+    <div class="etapa-card">
+      <div class="etapa-top">
+        <div style="flex:1;">
+          <div class="etapa-titulo">${escapeHtml(e.titulo)}</div>
+          <div class="etapa-dates">
+            ${e.data ? `<span>Data: ${fmtDate(e.data)}</span>` : ''}
+            ${e.prazo ? `<span>Prazo: ${fmtDate(e.prazo)}</span>` : ''}
+            ${e.reminderDays ? `<span>Lembrete a cada ${e.reminderDays}d</span>` : ''}
           </div>
-          ${showPrazoStamp ? `<span class="stamp ${prazoStatus}">${prazoLabel}</span>` : ''}
+          ${e.obs ? `<div class="etapa-obs">${escapeHtml(e.obs)}</div>` : ''}
         </div>
-        <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;">
-          <select class="status-select st-${e.status}" data-status-etapa="${e.id}" data-case="${c.id}">
-            ${STATUS_OPTIONS.map(s => `<option value="${s.key}" ${s.key === e.status ? 'selected' : ''}>${s.label}</option>`).join('')}
-          </select>
-          <button class="mini-btn" data-edit-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-pencil"></i> Editar</button>
-          <button class="mini-btn danger" data-delete-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-times-circle"></i> Excluir</button>
-        </div>
+        ${prazo ? `<span class="stamp ${prazo.status}">${prazo.label}</span>` : ''}
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+        <select class="status-select st-${e.status}" data-status-etapa="${e.id}" data-case="${c.id}">
+          ${STATUS_OPTIONS.map(s => `<option value="${s.key}" ${s.key === e.status ? 'selected' : ''}>${s.label}</option>`).join('')}
+        </select>
+        <button class="mini-btn" data-edit-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-pencil"></i> Editar</button>
+        <button class="mini-btn danger" data-delete-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-times-circle"></i> Excluir</button>
       </div>
     </div>
   `;
@@ -262,20 +358,18 @@ function renderMarcoCard(c, e){
   }
   const statusModifier = (e.marcoTipo === 'status' || e.marcoTipo === 'recurso_decisao') ? ` marco-card-status-${e.status}` : '';
   return `
-    <div class="etapa marco marco-${e.marcoTipo}${(e.marcoTipo==='status' || e.marcoTipo==='recurso_decisao') ? ' marco-status-'+e.status : ''}">
-      <div class="etapa-card marco-card marco-card-${e.marcoTipo}${statusModifier}">
-        <div class="marco-label">Marco · ${def.label}</div>
-        <div class="etapa-top">
-          <div style="flex:1;">
-            <div class="etapa-titulo">${escapeHtml(e.titulo)}</div>
-            <div class="etapa-dates"><span>Status: ${statusLabel}</span>${extra}</div>
-            ${e.obs ? `<div class="etapa-obs">${escapeHtml(e.obs)}</div>` : ''}
-          </div>
+    <div class="etapa-card marco-card marco-card-${e.marcoTipo}${statusModifier}">
+      <div class="marco-label">Marco · ${def.label}</div>
+      <div class="etapa-top">
+        <div style="flex:1;">
+          <div class="etapa-titulo">${escapeHtml(e.titulo)}</div>
+          <div class="etapa-dates"><span>Status: ${statusLabel}</span>${extra}</div>
+          ${e.obs ? `<div class="etapa-obs">${escapeHtml(e.obs)}</div>` : ''}
         </div>
-        <div style="display:flex; gap:10px; margin-top:10px;">
-          <button class="mini-btn" data-edit-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-pencil"></i> Editar</button>
-          <button class="mini-btn danger" data-delete-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-times-circle"></i> Excluir</button>
-        </div>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:10px;">
+        <button class="mini-btn" data-edit-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-pencil"></i> Editar</button>
+        <button class="mini-btn danger" data-delete-etapa="${e.id}" data-case="${c.id}"><i class="pi pi-times-circle"></i> Excluir</button>
       </div>
     </div>
   `;

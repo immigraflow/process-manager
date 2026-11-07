@@ -134,6 +134,19 @@ export function visaLabel(key){
 }
 export function visaTemFluxo(key){ return VISA_TIPOS_COM_FLUXO.includes(key); }
 
+/** Quantos processos a lista lateral mostra antes do botão "VER MAIS" */
+export const CASE_LIST_LIMIT = 10;
+
+/** Ícone e tom de cor (classe .tone-*) de cada status de etapa normal */
+export const STATUS_ICONS = { nao_iniciado: '○', confeccao: '◐', revisao: '◑', pendencia: '!', concluido: '✓' };
+export const STATUS_TONES = { nao_iniciado: 'neutral', confeccao: 'warn', revisao: 'purple', pendencia: 'bad', concluido: 'ok' };
+/** Tom de cor de cada status de marco */
+export const MARCO_TONES = {
+  pendente: 'warn', sim: 'ok', nao: 'bad',
+  analise: 'neutral', rfi: 'purple', emitido: 'ok', certificado: 'ok', protocolado: 'ok',
+  aprovado: 'ok', negado: 'bad', rfe: 'warn', rejeitado: 'bad'
+};
+
 export const WEEKDAYS = [
   {idx:1, label:'Segunda-feira'}, {idx:2, label:'Terça-feira'}, {idx:3, label:'Quarta-feira'},
   {idx:4, label:'Quinta-feira'}, {idx:5, label:'Sexta-feira'}, {idx:6, label:'Sábado'}, {idx:0, label:'Domingo'}
