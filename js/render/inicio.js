@@ -103,7 +103,8 @@ export function renderInicioView(){
     { l: 'Fora do prazo', v: d.situacao.fora, c: 'bad' },
     { l: 'Concluídos', v: d.situacao.concluido, c: 'accent' }
   ];
-  const corColuna = { urgente: 'bad', revisao: 'purple', liberada: 'info', andamento: 'neutral' };
+  // Mesmas cores dos cabeçalhos das colunas da aba Acompanhamento dos casos (.kanban-col.* em styles.scss)
+  const corColuna = { urgente: 'bad', revisao: 'purple', liberada: 'ok', andamento: 'warn' };
   const trabalho = KANBAN_COLUMNS.map(col => ({ l: col.label, v: d.trabalho[col.key] || 0, c: corColuna[col.key] || 'accent' }));
   const corDecisao = { aprovado: 'ok', negado: 'bad', rfe: 'warn', rejeitado: 'neutral' };
 
