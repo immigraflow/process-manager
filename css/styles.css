@@ -1449,11 +1449,45 @@ body {
 }
 
 .kanban-filters {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
-  align-items: center;
+  align-items: stretch;
   margin-bottom: 18px;
-  flex-wrap: wrap;
+}
+.kanban-filters .search-field {
+  grid-column: span 3;
+  margin-bottom: 0;
+}
+.kanban-filters .search-field input,
+.kanban-filters .kanban-status-filter {
+  height: 40px;
+  box-sizing: border-box;
+}
+
+.kanban-status-filter {
+  width: 100%;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 13px;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+}
+.kanban-status-filter:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+@media (max-width: 700px) {
+  .kanban-filters {
+    grid-template-columns: 1fr;
+  }
+  .kanban-filters .search-field {
+    grid-column: auto;
+  }
 }
 
 .template-item {

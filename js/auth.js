@@ -4,7 +4,7 @@ import { state } from './state.js';
 import { dbGetOrgId, dbFetchAll } from './api.js';
 import { setRemember } from './authStorage.js';
 import { showToast } from './toast.js';
-import { rankCasesByImportance } from './domain.js';
+import { orderCasesByDate } from './domain.js';
 
 export async function boot(render){
   const { data: sessionData } = await sb.auth.getSession();
@@ -22,7 +22,7 @@ export async function afterLogin(user, render){
     state.orgId = await dbGetOrgId(user.id);
     const fresh = await dbFetchAll(state.orgId);
     state.data = fresh;
-    if(state.data.cases.length && !state.selectedCaseId) state.selectedCaseId = rankCasesByImportance(state.data.cases)[0].id;
+    if(state.data.cases.length && !state.selectedCaseId) state.selectedCaseId = orderCasesByDate(state.data.cases)[0].id;
     state.loadError = null;
   }catch(err){
     console.error(err);

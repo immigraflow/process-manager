@@ -18,7 +18,7 @@ const TABS = [
   { key: 'kanban', label: 'Acompanhamento dos casos', icon: 'pi-th-large' },
   { key: 'prioridades', label: 'Prioridades', icon: 'pi-flag' },
   { key: 'resultados', label: 'Resultados', icon: 'pi-chart-bar' },
-  { key: 'prioritydate', label: 'Priority Date', icon: 'pi-calendar' },
+  { key: 'prioritydate', label: 'Data de prioridade', icon: 'pi-calendar' },
   { key: 'lembretes', label: 'Lembretes', icon: 'pi-bell' }
 ];
 
