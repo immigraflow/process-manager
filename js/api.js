@@ -1,7 +1,7 @@
 // Toda a comunicação com o Supabase (CRUD). Nenhuma outra parte do app
 // deve chamar `sb.from(...)` diretamente — sempre passar por aqui.
 import { sb } from './config.js';
-import { DEFAULT_TEMPLATE } from './constants.js';
+import { DEFAULT_TEMPLATE, DEFAULT_VISA_TIPO } from './constants.js';
 import { MARCO_DEFS } from './constants.js';
 import { isEtapaDone } from './domain.js';
 import { etapaRowToLocal } from './mappers.js';
@@ -46,6 +46,7 @@ export async function dbFetchAll(orgId){
   const cases = caseRows.map(c => ({
     id: c.id, nome: c.nome, numero: c.numero || '', cliente: c.cliente || '',
     nvcAosChoice: c.nvc_aos_choice,
+    tipoVisto: c.tipo_visto || DEFAULT_VISA_TIPO,
     etapas: etapaRows.filter(e => e.case_id === c.id).map(etapaRowToLocal)
   }));
 
@@ -58,8 +59,8 @@ export async function dbFetchAll(orgId){
   return { cases, template, eventos };
 }
 
-export async function dbInsertCase(orgId, nome, numero, cliente){
-  const { data: row, error } = await sb.from('cases').insert({ organization_id: orgId, nome, numero: numero || null, cliente: cliente || null }).select().single();
+export async function dbInsertCase(orgId, nome, numero, cliente, tipoVisto){
+  const { data: row, error } = await sb.from('cases').insert({ organization_id: orgId, nome, numero: numero || null, cliente: cliente || null, tipo_visto: tipoVisto }).select().single();
   if(error) throw error;
   return row;
 }

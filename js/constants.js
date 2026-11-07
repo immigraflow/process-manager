@@ -100,6 +100,40 @@ export const AOS_TEMPLATE = [
   { titulo: 'O AOS foi aprovado?', tipo: 'marco', marcoTipo: 'recurso_decisao', colecao: 'aos' }
 ];
 
+/** Tipos de visto agrupados (alimenta o select do modal "Novo processo") */
+export const VISA_GROUPS = [
+  { label: 'TRABALHISTAS', options: [
+    { key: 'eb1', label: 'EB-1' },
+    { key: 'eb2nw', label: 'EB-2 NW' },
+    { key: 'eb3', label: 'EB-3' },
+    { key: 'l1', label: 'L-1' },
+    { key: 'o1', label: 'O-1' }
+  ] },
+  { label: 'FAMILIARES', options: [
+    { key: 'casamento', label: 'Casamento' },
+    { key: 'parentesco', label: 'Parentesco' }
+  ] },
+  { label: 'HUMANITÁRIOS', options: [
+    { key: 'vawa', label: 'Vawa' },
+    { key: 'asilo', label: 'Asilo' }
+  ] }
+];
+
+/** Tipo usado por processos criados antes da existência do campo tipo_visto */
+export const DEFAULT_VISA_TIPO = 'eb3';
+
+/** Tipos que já têm fluxo implementado. Os demais exibem "Fluxo a ser implementado". */
+export const VISA_TIPOS_COM_FLUXO = ['eb3'];
+
+export function visaLabel(key){
+  for(const g of VISA_GROUPS){
+    const o = g.options.find(x => x.key === key);
+    if(o) return o.label;
+  }
+  return key || '';
+}
+export function visaTemFluxo(key){ return VISA_TIPOS_COM_FLUXO.includes(key); }
+
 export const WEEKDAYS = [
   {idx:1, label:'Segunda-feira'}, {idx:2, label:'Terça-feira'}, {idx:3, label:'Quarta-feira'},
   {idx:4, label:'Quinta-feira'}, {idx:5, label:'Sexta-feira'}, {idx:6, label:'Sábado'}, {idx:0, label:'Domingo'}

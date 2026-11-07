@@ -1,5 +1,5 @@
 import { state, getCase, findStatusMarco } from '../state.js';
-import { MARCO_DEFS, STATUS_OPTIONS, RECURSO_TIPOS, RECURSO_STATUS_GATILHO } from '../constants.js';
+import { MARCO_DEFS, STATUS_OPTIONS, RECURSO_TIPOS, RECURSO_STATUS_GATILHO, VISA_GROUPS, DEFAULT_VISA_TIPO, visaLabel, visaTemFluxo } from '../constants.js';
 import { isEtapaDone, caseFullyDone, caseOverallStatus, deadlineStatus, deadlineLabel } from '../domain.js';
 import { escapeHtml, fmtDate, todayISO } from '../utils.js';
 
@@ -14,7 +14,7 @@ export function renderProcessosView(){
           <button class="icon-btn" id="btn-template" title="Etapas padrão"><i class="pi pi-cog"></i></button>
         </div>
         ${state.showTemplateManager ? renderTemplateManager() : ''}
-        ${(state.showNewCaseForm || state.editingCaseId) ? renderCaseForm(state.editingCaseId ? getCase(state.editingCaseId) : null) : ''}
+        ${state.editingCaseId ? renderCaseForm(getCase(state.editingCaseId)) : ''}
         <div class="search-field">
           <i class="pi pi-search"></i>
           <input type="text" id="case-search-input" placeholder="Buscar processo pelo nome..." value="${escapeHtml(state.caseSearchQuery)}">
@@ -32,7 +32,7 @@ function renderCaseListItems(){
   const query = state.caseSearchQuery.trim().toLowerCase();
   const filtered = query ? state.data.cases.filter(c => c.nome.toLowerCase().includes(query)) : state.data.cases;
 
-  if(state.data.cases.length === 0 && !state.showNewCaseForm){
+  if(state.data.cases.length === 0){
     return '<div class="empty-sidebar">Nenhum processo cadastrado ainda. Clique em "Novo processo" para começar.</div>';
   }
   if(filtered.length === 0){
@@ -73,14 +73,44 @@ function renderTemplateManager(){
   `;
 }
 
+/** Modal "Novo processo": select de tipo de visto (agrupado) + o card de cadastro do caso */
+export function renderNewCaseModal(){
+  if(!state.showNewCaseForm) return '';
+  const tipo = state.newCaseTipo;
+  let aviso = '';
+  if(tipo && visaTemFluxo(tipo)){
+    aviso = `<div class="field-hint" style="margin-bottom:12px;">O processo será criado com o fluxo padrão do ${escapeHtml(visaLabel(tipo))} (${state.data.template.length} etapas).</div>`;
+  } else if(tipo){
+    aviso = `<div class="flow-pending flow-pending--compact"><i class="pi pi-clock"></i> Fluxo a ser implementado</div>`;
+  }
+  return `
+    <div class="modal-overlay" id="nc-overlay">
+      <div class="modal-card modal-card--wide">
+        <div style="font-weight:600; font-size:14.5px; margin-bottom:12px; font-family: var(--font-display);">Novo processo</div>
+        <div class="form-row"><div class="form-field">
+          <label for="nc-tipo">Tipo de visto</label>
+          <select id="nc-tipo">
+            <option value="" ${tipo ? '' : 'selected'} disabled>Selecione o tipo de visto</option>
+            ${VISA_GROUPS.map(g => `<optgroup label="${escapeHtml(g.label)}">${g.options.map(o => `<option value="${o.key}" ${tipo === o.key ? 'selected' : ''}>${escapeHtml(o.label)}</option>`).join('')}</optgroup>`).join('')}
+          </select>
+        </div></div>
+        <div id="nc-tipo-error" class="field-error" style="display:none;">Selecione o tipo de visto.</div>
+        ${aviso}
+        ${renderCaseForm(null)}
+      </div>
+    </div>
+  `;
+}
+
 function renderCaseForm(existing){
   const isEdit = !!existing;
+  const draft = (!isEdit && state.newCaseDraft) ? state.newCaseDraft : { nome: '', numero: '', cliente: '' };
   return `
     <div class="form-card" id="new-case-form">
-      <div class="form-row"><div class="form-field" style="flex: 2;"><label>Nome do caso</label><input type="text" id="nc-nome" placeholder="Ex: Ação trabalhista - Silva" value="${isEdit ? escapeHtml(existing.nome) : ''}"></div></div>
+      <div class="form-row"><div class="form-field" style="flex: 2;"><label>Nome do caso</label><input type="text" id="nc-nome" placeholder="Ex: Ação trabalhista - Silva" value="${isEdit ? escapeHtml(existing.nome) : escapeHtml(draft.nome)}"></div></div>
       <div class="form-row">
-        <div class="form-field"><label>Nº do processo (opcional)</label><input type="text" id="nc-numero" placeholder="0001234-56.2026.8.19.0001" value="${isEdit ? escapeHtml(existing.numero || '') : ''}"></div>
-        <div class="form-field"><label>Cliente (opcional)</label><input type="text" id="nc-cliente" placeholder="Nome do cliente" value="${isEdit ? escapeHtml(existing.cliente || '') : ''}"></div>
+        <div class="form-field"><label>Nº do processo (opcional)</label><input type="text" id="nc-numero" placeholder="0001234-56.2026.8.19.0001" value="${isEdit ? escapeHtml(existing.numero || '') : escapeHtml(draft.numero)}"></div>
+        <div class="form-field"><label>Cliente (opcional)</label><input type="text" id="nc-cliente" placeholder="Nome do cliente" value="${isEdit ? escapeHtml(existing.cliente || '') : escapeHtml(draft.cliente)}"></div>
       </div>
       <div id="nc-error" class="field-error" style="display:none;">Digite um nome para o caso.</div>
       <div class="form-actions"><button class="btn text" id="nc-cancel">Cancelar</button><button class="btn primary" id="nc-save" ${isEdit ? `data-case="${existing.id}"` : ''} ${state.busy?'disabled':''}>${state.busy ? `<i class="pi pi-spinner pi-spin"></i> ${state.busyLabel || 'Salvando...'}` : (isEdit ? 'Alterar' : 'Salvar')}</button></div>
@@ -111,6 +141,7 @@ function renderCaseCard(c){
 }
 
 export function renderCaseDetail(c){
+  if(!visaTemFluxo(c.tipoVisto || DEFAULT_VISA_TIPO)) return renderCaseDetailSemFluxo(c);
   const sortedEtapas = c.etapas.filter(e => e.colecao !== 'aos');
   const aosEtapas = c.etapas.filter(e => e.colecao === 'aos');
   const done = caseFullyDone(c);
@@ -119,7 +150,7 @@ export function renderCaseDetail(c){
       <div>
         ${c.numero ? `<div class="numero">${escapeHtml(c.numero)}</div>` : ''}
         <h2>${escapeHtml(c.nome)}${done ? '<span class="done-check" title="Processo concluído">✓</span>' : ''}</h2>
-        ${c.cliente ? `<div class="cliente">${escapeHtml(c.cliente)}</div>` : ''}
+        <div class="cliente"><span class="tag tag--visa">${escapeHtml(visaLabel(c.tipoVisto || DEFAULT_VISA_TIPO))}</span>${c.cliente ? ` ${escapeHtml(c.cliente)}` : ''}</div>
       </div>
       <div class="actions"><button class="icon-btn danger" id="btn-delete-case" title="Excluir processo"><i class="pi pi-times-circle"></i></button></div>
     </div>
@@ -129,6 +160,22 @@ export function renderCaseDetail(c){
     ${state.showEtapaFormFor === c.id ? renderEtapaForm(c, null) : `<button class="add-etapa-toggle" id="btn-add-etapa"><i class="pi pi-plus-circle"></i>Adicionar etapa</button>`}
     ${state.data.template.length > 0 ? `<button class="apply-template-btn" id="btn-apply-template" data-case="${c.id}"><i class="pi pi-refresh"></i>Aplicar etapas padrão a este processo</button>` : ''}
     ${renderNvcAosBlock(c, aosEtapas)}
+  `;
+}
+
+/** Tipos de visto sem fluxo implementado: cabeçalho do caso + aviso no lugar da linha do tempo */
+function renderCaseDetailSemFluxo(c){
+  return `
+    <div class="case-header">
+      <div>
+        ${c.numero ? `<div class="numero">${escapeHtml(c.numero)}</div>` : ''}
+        <h2>${escapeHtml(c.nome)}</h2>
+        <div class="cliente"><span class="tag tag--visa">${escapeHtml(visaLabel(c.tipoVisto))}</span>${c.cliente ? ` ${escapeHtml(c.cliente)}` : ''}</div>
+      </div>
+      <div class="actions"><button class="icon-btn danger" id="btn-delete-case" title="Excluir processo"><i class="pi pi-times-circle"></i></button></div>
+    </div>
+    <div class="section-label">Linha do tempo</div>
+    <div class="flow-pending"><i class="pi pi-clock"></i> Fluxo a ser implementado</div>
   `;
 }
 
