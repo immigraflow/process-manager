@@ -4,7 +4,7 @@ import { doLogout, doLogin, doForgotPassword, doChangePassword } from './auth.js
 import * as api from './api.js';
 import { etapaPayloadFromTemplateItem, etapaRowToLocal } from './mappers.js';
 import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO, CASE_LIST_LIMIT, visaTemFluxo } from './constants.js';
-import { agruparPorFase, faseDaEtapa, orderCasesByDate } from './domain.js';
+import { agruparPorFase, faseDaEtapa, orderCasesByStatus } from './domain.js';
 import { todayISO } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -123,7 +123,7 @@ export function attachConfirmDialogEvents(render){
 
 /** Se o processo selecionado ficaria escondido atrás do "VER MAIS", abre a lista inteira */
 function revealSelectedCase(){
-  const ordered = orderCasesByDate(state.data.cases);
+  const ordered = orderCasesByStatus(state.data.cases);
   if(ordered.findIndex(c => c.id === state.selectedCaseId) >= CASE_LIST_LIMIT) state.casesExpanded = true;
 }
 
@@ -256,7 +256,7 @@ export function attachEvents(render){
       onConfirm: async () => {
         await api.dbDeleteCase(state.selectedCaseId);
         state.data.cases = state.data.cases.filter(c => c.id !== state.selectedCaseId);
-        state.selectedCaseId = state.data.cases.length ? orderCasesByDate(state.data.cases)[0].id : null;
+        state.selectedCaseId = state.data.cases.length ? orderCasesByStatus(state.data.cases)[0].id : null;
         showToast('Processo excluído.');
       }
     };

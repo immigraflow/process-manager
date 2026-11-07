@@ -1,6 +1,6 @@
 import { state, getCase, findStatusMarco } from '../state.js';
 import { MARCO_DEFS, STATUS_OPTIONS, STATUS_ICONS, STATUS_TONES, MARCO_TONES, RECURSO_TIPOS, RECURSO_STATUS_GATILHO, VISA_GROUPS, DEFAULT_VISA_TIPO, CASE_LIST_LIMIT, visaLabel, visaTemFluxo } from '../constants.js';
-import { isEtapaDone, caseFullyDone, caseOverallStatus, currentEtapa, prazoInfo, agruparPorFase, faseDaEtapa, orderCasesByDate } from '../domain.js';
+import { isEtapaDone, caseFullyDone, caseOverallStatus, currentEtapa, prazoInfo, agruparPorFase, faseDaEtapa, orderCasesByStatus } from '../domain.js';
 import { isConcluido } from '../dashboard.js';
 import { escapeHtml, fmtDate, todayISO } from '../utils.js';
 
@@ -32,7 +32,7 @@ export function renderProcessosView(){
 function renderCaseListItems(){
   const query = state.caseSearchQuery.trim().toLowerCase();
   // Do mais antigo para o mais recente (data de cadastro)
-  const ordered = orderCasesByDate(state.data.cases);
+  const ordered = orderCasesByStatus(state.data.cases);
   const filtered = query ? ordered.filter(c => c.nome.toLowerCase().includes(query)) : ordered;
 
   if(state.data.cases.length === 0){
