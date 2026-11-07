@@ -47,7 +47,7 @@ export async function doLogin(email, senha, remember, render){
 export async function doLogout(render){
   await sb.auth.signOut();
   state.currentUser = null; state.orgId = null; state.data = { cases: [], template: [], eventos: [] };
-  state.selectedCaseId = null; state.currentView = 'processos'; state.showProfileMenu = false;
+  state.selectedCaseId = null; state.currentView = 'inicio'; state.showProfileMenu = false;
   render();
 }
 

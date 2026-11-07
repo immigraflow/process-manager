@@ -4,6 +4,7 @@ import { boot } from './auth.js';
 import { escapeHtml, fmtDate, todayISO } from './utils.js';
 import { attachEvents, attachLoginEvents } from './events.js';
 import { renderLogin } from './render/login.js';
+import { renderInicioView } from './render/inicio.js';
 import { renderProcessosView } from './render/processos.js';
 import { renderKanbanView } from './render/kanban.js';
 import { renderPrioridadesView } from './render/prioridades.js';
@@ -12,6 +13,7 @@ import { renderPriorityDateView } from './render/priorityDate.js';
 import { renderLembretesView } from './render/lembretes.js';
 
 const TABS = [
+  { key: 'inicio', label: 'Início', icon: 'pi-home' },
   { key: 'processos', label: 'Processos', icon: 'pi-briefcase' },
   { key: 'kanban', label: 'Acompanhamento dos casos', icon: 'pi-th-large' },
   { key: 'prioridades', label: 'Prioridades', icon: 'pi-flag' },
@@ -97,6 +99,7 @@ function render(){
       ${TABS.map(t => `<button class="tabs__btn ${state.currentView===t.key?'active':''}" data-view="${t.key}"><i class="pi ${t.icon}"></i>${t.label}</button>`).join('')}
     </nav>
     <div id="view-root">
+      ${state.currentView === 'inicio' ? renderInicioView() : ''}
       ${state.currentView === 'processos' ? renderProcessosView() : ''}
       ${state.currentView === 'kanban' ? renderKanbanView() : ''}
       ${state.currentView === 'prioridades' ? renderPrioridadesView() : ''}
