@@ -129,17 +129,22 @@ export function faseDaEtapa(c, e){
 }
 
 /**
- * Ordem da lista lateral da aba Processos, pelo status da etapa atual (mesmas categorias do Kanban):
- * 1º Urgentes (vencidos ou em pendência), 2º Em revisão, 3º Em andamento, 4º Liberadas para trabalhar.
+ * Ordem da lista lateral da aba Processos:
+ * 1º Urgentes: processos com selo VENCIDO (qualquer etapa pendente com prazo vencido, `caseOverallStatus`)
+ *    ou com a etapa atual em pendência; depois, pela categoria da etapa atual (as do Kanban):
+ * 2º Em revisão, 3º Em andamento, 4º Liberadas para trabalhar.
  * Processos sem etapa pendente (concluídos, via NVC ou sem fluxo) vão por último.
  * Dentro de cada grupo, do mais antigo para o mais recente (data de cadastro); empates mantêm a ordem original.
  */
 export function orderCasesByStatus(cases){
+  const fim = SIDEBAR_STATUS_ORDER.length;
   const posicao = c => {
-    if(c.nvcAosChoice === 'nvc') return SIDEBAR_STATUS_ORDER.length;
+    if(c.nvcAosChoice === 'nvc') return fim;
     const cur = currentEtapa(c);
-    const idx = cur ? SIDEBAR_STATUS_ORDER.indexOf(computeCategory(cur)) : -1;
-    return idx < 0 ? SIDEBAR_STATUS_ORDER.length : idx;
+    if(!cur) return fim;
+    if(caseOverallStatus(c) === 'vencido') return 0; // mesmo critério do selo VENCIDO do card
+    const idx = SIDEBAR_STATUS_ORDER.indexOf(computeCategory(cur));
+    return idx < 0 ? fim : idx;
   };
   return cases
     .map((c, i) => ({ c, i, grupo: posicao(c) }))
