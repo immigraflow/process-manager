@@ -154,6 +154,27 @@ export function orderCasesByStatus(cases){
     .map(x => x.c);
 }
 
+/** Status do envio de documentos de um processo ('pendente' | 'enviado') */
+export function docStatusOf(c){ return c.docStatus || 'pendente'; }
+
+/**
+ * Lista da aba Documentos: filtra por nome (do processo ou do cliente) e por status, e ordena:
+ * pendentes primeiro (prazo mais próximo no topo), depois enviados em ordem alfabética.
+ */
+export function listarDocumentos(cases, query = '', statusFilter = 'todos'){
+  const q = query.trim().toLowerCase();
+  let lista = cases;
+  if(q) lista = lista.filter(c => c.nome.toLowerCase().includes(q) || (c.cliente || '').toLowerCase().includes(q));
+  if(statusFilter !== 'todos') lista = lista.filter(c => docStatusOf(c) === statusFilter);
+  const porNome = (a, b) => a.nome.localeCompare(b.nome, 'pt-BR');
+  return [...lista].sort((a, b) => {
+    const pa = docStatusOf(a) === 'pendente', pb = docStatusOf(b) === 'pendente';
+    if(pa !== pb) return pa ? -1 : 1;
+    if(pa) return (a.docPrazo || '9999').localeCompare(b.docPrazo || '9999') || porNome(a, b);
+    return porNome(a, b);
+  });
+}
+
 export function nearestDeadline(c){
   let candidates = [];
   c.etapas.forEach(e => {

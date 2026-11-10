@@ -11,11 +11,13 @@ import { renderPrioridadesView } from './render/prioridades.js';
 import { renderResultadosView } from './render/resultados.js';
 import { renderPriorityDateView } from './render/priorityDate.js';
 import { renderLembretesView } from './render/lembretes.js';
+import { renderDocumentosView, renderDocumentoModal } from './render/documentos.js';
 
 const TABS = [
   { key: 'inicio', label: 'Início', icon: 'pi-home' },
   { key: 'processos', label: 'Processos', icon: 'pi-briefcase' },
   { key: 'kanban', label: 'Acompanhamento dos casos', icon: 'pi-th-large' },
+  { key: 'documentos', label: 'Documentos', icon: 'pi-folder' },
   { key: 'prioridades', label: 'Prioridades', icon: 'pi-flag' },
   { key: 'resultados', label: 'Resultados', icon: 'pi-chart-bar' },
   { key: 'prioritydate', label: 'Data de prioridade', icon: 'pi-calendar' },
@@ -106,8 +108,10 @@ function render(){
       ${state.currentView === 'resultados' ? renderResultadosView() : ''}
       ${state.currentView === 'prioritydate' ? renderPriorityDateView() : ''}
       ${state.currentView === 'lembretes' ? renderLembretesView() : ''}
+      ${state.currentView === 'documentos' ? renderDocumentosView() : ''}
     </div>
     ${renderNewCaseModal()}
+    ${renderDocumentoModal()}
     ${renderChangePasswordModal()}
     ${renderConfirmModal()}
     ${renderFooter()}

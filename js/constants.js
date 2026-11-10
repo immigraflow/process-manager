@@ -150,6 +150,13 @@ export const MARCO_TONES = {
   aprovado: 'ok', negado: 'bad', rfe: 'warn', rejeitado: 'bad'
 };
 
+/** Aba Documentos: bucket do Supabase Storage e status do envio de documentos pelo cliente */
+export const DOC_BUCKET = 'client-documents';
+export const DOC_STATUS = {
+  pendente: { label: 'PENDENTE', icon: 'pi-exclamation-triangle', tone: 'warn', selectClass: 'st-confeccao' },
+  enviado: { label: 'ENVIADO', icon: 'pi-check-circle', tone: 'ok', selectClass: 'st-concluido' }
+};
+
 export const WEEKDAYS = [
   {idx:1, label:'Segunda-feira'}, {idx:2, label:'Terça-feira'}, {idx:3, label:'Quarta-feira'},
   {idx:4, label:'Quinta-feira'}, {idx:5, label:'Sexta-feira'}, {idx:6, label:'Sábado'}, {idx:0, label:'Domingo'}
