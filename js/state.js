@@ -1,6 +1,6 @@
 // Estado global da aplicação (em memória) e helpers de leitura
 export const state = {
-  data: { cases: [], template: [], eventos: [] },
+  data: { cases: [], template: [], eventos: [], documentosErro: null },
   currentUser: null,
   orgId: null,
   authError: null,
@@ -24,6 +24,11 @@ export const state = {
   casesExpanded: false, // lista lateral de processos: false = só os 10 mais importantes ("VER MAIS")
   fasesAbertas: {}, // { 'caseId:faseKey': true|false } — sobrescreve a abertura padrão (fase da etapa atual)
   expandedEtapaId: null, // etapa (não atual) aberta na linha do tempo
+  docExpandedId: null, // aba Documentos: processo com o painel de ações aberto
+  docModal: null, // aba Documentos: { id, tipo: 'enviados' | 'lembrete' | 'trilha' } — modal aberto para um processo
+  docSearchQuery: '',
+  docListExpanded: false, // aba Documentos: false = só os 10 primeiros ("VER MAIS")
+  docStatusFilter: 'todos', // 'todos' | 'pendente' | 'enviado'
   inicioPeriodo: '12', // período dos gráficos mensais da aba Início: '6' | '12' | 'ano'
   resultMonth: new Date().toISOString().slice(0,7),
   priorityDateQuery: '',

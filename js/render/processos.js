@@ -150,10 +150,6 @@ function renderCaseCard(c){
 
 export function renderCaseDetail(c){
   if(!visaTemFluxo(c.tipoVisto || DEFAULT_VISA_TIPO)) return renderCaseDetailSemFluxo(c);
-  const principais = c.etapas.filter(e => e.colecao !== 'aos');
-  const aosEtapas = c.etapas.filter(e => e.colecao === 'aos');
-  const cur = currentEtapa(c);
-  const fases = agruparPorFase(principais);
   const done = caseFullyDone(c);
   return `
     <div class="case-header">
@@ -164,16 +160,36 @@ export function renderCaseDetail(c){
       </div>
       <div class="actions"><button class="icon-btn danger" id="btn-delete-case" title="Excluir processo"><i class="pi pi-times-circle"></i></button></div>
     </div>
+    ${renderTrilhaProcesso(c)}
+  `;
+}
+
+/**
+ * Trilha do processo: resumo + linha do tempo em fases + bloco NVC/AOS.
+ * Usada na aba Processos e no modal "VER PROCESSO" da aba Documentos (com editavel = false,
+ * sem os botões "Adicionar etapa" e "Aplicar etapas padrão").
+ */
+export function renderTrilhaProcesso(c, { editavel = true } = {}){
+  if(!visaTemFluxo(c.tipoVisto || DEFAULT_VISA_TIPO)){
+    return '<div class="section-label">Linha do tempo</div><div class="flow-pending"><i class="pi pi-clock"></i> Fluxo a ser implementado</div>';
+  }
+  const principais = c.etapas.filter(e => e.colecao !== 'aos');
+  const aosEtapas = c.etapas.filter(e => e.colecao === 'aos');
+  const cur = currentEtapa(c);
+  const fases = agruparPorFase(principais);
+  return `
     ${renderResumoCaso(c, cur)}
     <div class="section-label">Linha do tempo (${principais.length})</div>
-    ${principais.length === 0 ? '<div class="empty-etapas">Nenhuma etapa cadastrada. Adicione a primeira etapa abaixo.</div>' : `
+    ${principais.length === 0 ? `<div class="empty-etapas">Nenhuma etapa cadastrada.${editavel ? ' Adicione a primeira etapa abaixo.' : ''}</div>` : `
       <div class="fase-actions">
         <button type="button" class="small-btn" data-fases-all="open" data-case="${c.id}"><i class="pi pi-angle-double-down" aria-hidden="true"></i> Expandir tudo</button>
         <button type="button" class="small-btn" data-fases-all="close" data-case="${c.id}"><i class="pi pi-angle-double-up" aria-hidden="true"></i> Recolher tudo</button>
       </div>`}
     ${fases.map(f => renderFase(c, f, cur)).join('')}
-    ${state.showEtapaFormFor === c.id ? renderEtapaForm(c, null) : `<button class="add-etapa-toggle" id="btn-add-etapa"><i class="pi pi-plus-circle"></i>Adicionar etapa</button>`}
-    ${state.data.template.length > 0 ? `<button class="apply-template-btn" id="btn-apply-template" data-case="${c.id}"><i class="pi pi-refresh"></i>Aplicar etapas padrão a este processo</button>` : ''}
+    ${editavel ? `
+      ${state.showEtapaFormFor === c.id ? renderEtapaForm(c, null) : `<button class="add-etapa-toggle" id="btn-add-etapa"><i class="pi pi-plus-circle"></i>Adicionar etapa</button>`}
+      ${state.data.template.length > 0 ? `<button class="apply-template-btn" id="btn-apply-template" data-case="${c.id}"><i class="pi pi-refresh"></i>Aplicar etapas padrão a este processo</button>` : ''}
+    ` : ''}
     ${renderNvcAosBlock(c, aosEtapas)}
   `;
 }

@@ -4,7 +4,7 @@ import { doLogout, doLogin, doForgotPassword, doChangePassword } from './auth.js
 import * as api from './api.js';
 import { etapaPayloadFromTemplateItem, etapaRowToLocal } from './mappers.js';
 import { AOS_TEMPLATE, MARCO_DEFS, RECURSO_STEPS, RECURSO_MARCO, RECURSO_STATUS_GATILHO, CASE_LIST_LIMIT, visaTemFluxo } from './constants.js';
-import { agruparPorFase, faseDaEtapa, orderCasesByStatus } from './domain.js';
+import { agruparPorFase, faseDaEtapa, orderCasesByStatus, listarDocumentos } from './domain.js';
 import { todayISO } from './utils.js';
 import { showToast } from './toast.js';
 
@@ -121,6 +121,35 @@ export function attachConfirmDialogEvents(render){
   };
 }
 
+/**
+ * Pede confirmação e exclui o processo. Usado pela aba Processos e pela aba Documentos:
+ * como cada item de Documentos é um processo, excluir em uma aba exclui na outra.
+ */
+function pedirExclusaoProcesso(render, caseId, message){
+  const c = getCase(caseId);
+  if(!c) return;
+  state.confirmDialog = {
+    title: 'Excluir processo',
+    message,
+    busyLabel: 'Excluindo...',
+    onConfirm: async () => {
+      await api.dbDeleteCase(caseId, (c.docArquivos || []).map(a => a.path));
+      state.data.cases = state.data.cases.filter(x => x.id !== caseId);
+      if(state.selectedCaseId === caseId) state.selectedCaseId = state.data.cases.length ? orderCasesByStatus(state.data.cases)[0].id : null;
+      if(state.docExpandedId === caseId) state.docExpandedId = null;
+      if(state.docModal && state.docModal.id === caseId) state.docModal = null;
+      showToast('Processo excluído.');
+    }
+  };
+  render();
+}
+
+/** Aba Documentos: se o item mudou de posição e ficaria atrás do "VER MAIS", abre a lista inteira */
+function revealDocItem(caseId){
+  const lista = listarDocumentos(state.data.cases, state.docSearchQuery, state.docStatusFilter);
+  if(lista.findIndex(c => c.id === caseId) >= CASE_LIST_LIMIT) state.docListExpanded = true;
+}
+
 /** Se o processo selecionado ficaria escondido atrás do "VER MAIS", abre a lista inteira */
 function revealSelectedCase(){
   const ordered = orderCasesByStatus(state.data.cases);
@@ -132,6 +161,97 @@ export function attachEvents(render){
   attachConfirmDialogEvents(render);
 
   document.querySelectorAll('[data-view]').forEach(el => { el.onclick = () => { state.currentView = el.getAttribute('data-view'); render(); }; });
+
+  // ---------- Aba Documentos (um item por processo) ----------
+  const docSearch = document.getElementById('doc-search-input');
+  if(docSearch) docSearch.oninput = () => {
+    state.docSearchQuery = docSearch.value;
+    const cursorPos = docSearch.selectionStart;
+    render();
+    const novoInput = document.getElementById('doc-search-input');
+    if(novoInput){ novoInput.focus(); novoInput.setSelectionRange(cursorPos, cursorPos); }
+  };
+  const docStatusFilter = document.getElementById('doc-status-filter');
+  if(docStatusFilter) docStatusFilter.onchange = () => { state.docStatusFilter = docStatusFilter.value; render(); };
+
+  const alternarPainelDoc = id => { state.docExpandedId = state.docExpandedId === id ? null : id; render(); };
+  document.querySelectorAll('[data-doc-toggle]').forEach(el => { el.onclick = () => alternarPainelDoc(el.getAttribute('data-doc-toggle')); });
+  // Clique na linha: abre/fecha o painel de ações (os documentos enviados abrem em "VER DOCUMENTOS")
+  document.querySelectorAll('[data-doc-main]').forEach(el => { el.onclick = () => alternarPainelDoc(el.getAttribute('data-doc-main')); });
+
+  // VER MAIS / VER MENOS da lista de Documentos: ao abrir, rola um pouco para baixo; ao recolher, volta ao topo
+  const btnDocsToggle = document.getElementById('btn-docs-toggle');
+  if(btnDocsToggle) btnDocsToggle.onclick = () => {
+    const expandir = !state.docListExpanded;
+    state.docListExpanded = expandir;
+    render();
+    if(expandir) window.scrollBy({ top: Math.round(window.innerHeight * 0.5), behavior: 'smooth' });
+    else window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  document.querySelectorAll('[data-doc-view]').forEach(el => { el.onclick = () => { state.docModal = { id: el.getAttribute('data-doc-view'), tipo: 'enviados' }; render(); }; });
+  document.querySelectorAll('[data-doc-trilha]').forEach(el => { el.onclick = () => { state.docModal = { id: el.getAttribute('data-doc-trilha'), tipo: 'trilha' }; render(); }; });
+  document.querySelectorAll('[data-doc-remind]').forEach(el => { el.onclick = () => { state.docModal = { id: el.getAttribute('data-doc-remind'), tipo: 'lembrete' }; render(); }; });
+  const docClose = document.getElementById('doc-modal-close');
+  if(docClose) docClose.onclick = () => { state.docModal = null; render(); };
+  // O disparo real (e-mail + WhatsApp) ainda não existe: por enquanto o modal só avisa e fecha
+  const docSend = document.getElementById('doc-modal-send');
+  if(docSend) docSend.onclick = () => {
+    state.docModal = null;
+    showToast('O envio de lembretes por e-mail e WhatsApp ainda será implementado.', 'info');
+    render();
+  };
+
+  document.querySelectorAll('[data-doc-status]').forEach(el => { el.onchange = () => {
+    const c = getCase(el.getAttribute('data-doc-status'));
+    const novo = el.value;
+    if(!c || c.docStatus === novo) return;
+    withBusy(render, async () => {
+      await api.dbUpdateCaseDocStatus(c.id, novo);
+      c.docStatus = novo;
+      revealDocItem(c.id);
+      showToast(novo === 'enviado' ? 'Documentação marcada como enviada.' : 'Documentação marcada como pendente.');
+    });
+  }; });
+
+  document.querySelectorAll('[data-doc-upload]').forEach(el => { el.onclick = () => {
+    const input = document.getElementById('doc-file-' + el.getAttribute('data-doc-upload'));
+    if(input) input.click();
+  }; });
+  document.querySelectorAll('[data-doc-file]').forEach(el => { el.onchange = () => {
+    const c = getCase(el.getAttribute('data-doc-file'));
+    const files = Array.from(el.files || []); // copiado antes do withBusy, que re-renderiza
+    if(!c || !files.length) return;
+    withBusy(render, async () => {
+      const novos = await api.dbUploadDocFiles(state.orgId, c.id, files);
+      c.docArquivos.push(...novos);
+      await api.dbUpdateCaseDocStatus(c.id, 'enviado');
+      c.docStatus = 'enviado';
+      revealDocItem(c.id);
+      showToast(novos.length === 1 ? 'Documento enviado.' : `${novos.length} documentos enviados.`);
+    }, 'Enviando...');
+  }; });
+
+  // Excluir na aba Documentos exclui o processo correspondente (e os arquivos dele)
+  document.querySelectorAll('[data-doc-delete]').forEach(el => { el.onclick = () => {
+    const c = getCase(el.getAttribute('data-doc-delete'));
+    if(!c) return;
+    pedirExclusaoProcesso(render, c.id,
+      `Excluir "${c.nome}" aqui também exclui o processo correspondente, com todas as etapas e os documentos enviados. Esta ação não poderá ser desfeita.`);
+  }; });
+
+  // Abre um documento por link temporário (bucket privado). A janela é aberta já no clique para não ser bloqueada.
+  document.querySelectorAll('[data-doc-open]').forEach(el => { el.onclick = async () => {
+    const aba = window.open('', '_blank');
+    try{
+      const url = await api.dbSignedDocUrl(el.getAttribute('data-doc-open'));
+      if(aba) aba.location.href = url; else window.open(url, '_blank');
+    }catch(err){
+      console.error(err);
+      if(aba) aba.close();
+      showToast('Não foi possível abrir o documento: ' + (err && err.message ? err.message : 'erro desconhecido.'), 'error');
+    }
+  }; });
 
   // Aba Início: período dos gráficos mensais e atalho "abrir processo" nos próximos prazos
   const inicioPeriodo = document.getElementById('inicio-periodo');
@@ -208,7 +328,7 @@ export function attachEvents(render){
           etapaRows = await api.dbInsertEtapasBulk(payloads);
           etapaRows.sort((a,b) => a.ordem - b.ordem);
         }
-        const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, tipoVisto: row.tipo_visto || tipoVisto, createdAt: row.created_at || new Date().toISOString(), etapas: etapaRows.map(etapaRowToLocal) };
+        const newCase = { id: row.id, nome: row.nome, numero: row.numero||'', cliente: row.cliente||'', nvcAosChoice: null, tipoVisto: row.tipo_visto || tipoVisto, createdAt: row.created_at || new Date().toISOString(), docStatus: row.doc_status || 'pendente', docPrazo: row.doc_prazo || null, docArquivos: [], etapas: etapaRows.map(etapaRowToLocal) };
         state.data.cases.unshift(newCase);
         state.selectedCaseId = newCase.id;
         state.expandedEtapaId = null;
@@ -248,20 +368,8 @@ export function attachEvents(render){
   }; });
 
   const btnDeleteCase = document.getElementById('btn-delete-case');
-  if(btnDeleteCase) btnDeleteCase.onclick = () => {
-    state.confirmDialog = {
-      title: 'Excluir processo',
-      message: 'Tem certeza que deseja excluir este processo e todas as suas etapas? Esta ação não poderá ser desfeita.',
-      busyLabel: 'Excluindo...',
-      onConfirm: async () => {
-        await api.dbDeleteCase(state.selectedCaseId);
-        state.data.cases = state.data.cases.filter(c => c.id !== state.selectedCaseId);
-        state.selectedCaseId = state.data.cases.length ? orderCasesByStatus(state.data.cases)[0].id : null;
-        showToast('Processo excluído.');
-      }
-    };
-    render();
-  };
+  if(btnDeleteCase) btnDeleteCase.onclick = () => pedirExclusaoProcesso(render, state.selectedCaseId,
+    'Tem certeza que deseja excluir este processo e todas as suas etapas? Os documentos dele (aba Documentos) também serão excluídos. Esta ação não poderá ser desfeita.');
 
   const btnAddEtapa = document.getElementById('btn-add-etapa');
   if(btnAddEtapa) btnAddEtapa.onclick = () => { state.showEtapaFormFor = state.selectedCaseId; render(); };
